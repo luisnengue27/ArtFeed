@@ -1,0 +1,25 @@
+.home {
+    min-height: 100vh;
+
+    background-image: url("../assets/Backgrounds/fundo.jpeg");
+    background-size: 100%;
+    background-repeat: no-repeat;
+   
+}
+.Balao {
+    position: absolute;
+    position: fixed;
+    left: 92%;
+    width: 130px;
+    bottom: 10%;
+}
+.card {
+    position: absolute;
+    display: flex;
+    gap: 30px;
+
+    justify-content: center;
+    align-items: center;
+
+  top: 150%;
+}

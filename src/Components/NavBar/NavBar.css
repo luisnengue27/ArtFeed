@@ -1,0 +1,55 @@
+.navbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    padding:15px 40px;
+
+    background:#1e1e1e;
+}
+
+.logo{
+    color:white;
+    font-size: 30px;
+}
+
+.nav-links{
+    display:flex;
+    list-style:none;
+    gap:30px;
+    margin:0;
+    padding:0;
+    
+}
+
+.nav-links a{
+    color:white;
+    text-decoration:none;
+    transition:.2s;
+    font-size: 25px;
+}
+
+.nav-links a:hover{
+    color:#6c63ff;
+}
+
+.nav-actions{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.search{
+    padding:8px 12px;
+    border-radius:20px;
+    border:none;
+}
+
+.login-btn{
+    background:#6c63ff;
+    color:white;
+    padding:12px 24px;
+    border-radius:20px;
+    text-decoration:none;
+    font-size: 27px;
+}
