@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import styles from "./Home.module.css";
-import Balao from "../assets/Balao.png"
+ import balao from "../assets/balao.png"
 import CardArtista from "../Components/Card/CardArtista";
 
 const Home = () => {
@@ -37,7 +37,7 @@ const Home = () => {
      
     <Link to="/explorar">
   <img
-    src={Balao}
+    src={balao}
     alt="Explorar"
     className={styles.Balao}
   />
