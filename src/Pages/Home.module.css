@@ -1,13 +1,32 @@
+.logon{
+    background-color:  pink;
+    width: 700px;
+    height: 420px;
+    position: absolute;
+    opacity: 0.7;
+    bottom: 130px;
+    border-radius: 20px;
+   
+}
+.logon h1{
+     font-size: 130px;
+    text-align: center;
+}
+
+
+
+
 .home {
     min-height: 100vh;
 
-    background-image: url("../assets/Backgrounds/fundo.jpeg");
-    background-size: 100%;
+    background-image: url("../assets/Backgrounds/cristoredentor.png");
+   
     background-repeat: no-repeat;
+    background-size: cover;
+    
    
 }
 .Balao {
-    position: absolute;
     position: fixed;
     left: 92%;
     width: 130px;
@@ -21,5 +40,28 @@
     justify-content: center;
     align-items: center;
 
-  top: 150%;
+  top: 131%;
 }
+    .carde {
+        position: absolute;
+        display: flex;
+        gap: 30px;
+
+        justify-content: center;
+        align-items: center;
+        padding-top: 20px;
+        top: 150%;
+    
+    }
+    .carder {
+        position: absolute;
+        display: flex;
+        gap: 30px;
+
+        justify-content: center;
+        align-items: center;
+        padding-top: 20px;
+        top: 170%;
+    
+    }
+
