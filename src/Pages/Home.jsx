@@ -3,6 +3,7 @@ import styles from "./Home.module.css";
  import balao from "../assets/balao.png"
 import CardArtista from "../Components/Card/CardArtista";
 
+
 const Home = () => {
   return (
       <div className={styles.home}>

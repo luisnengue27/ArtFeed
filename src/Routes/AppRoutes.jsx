@@ -14,6 +14,17 @@ import FaleConosco from "../Pages/FaleConosco";
 
 import Login from "../Pages/Login";
 
+import CadastroArtista from "../Pages/CadastroArtista";
+
+import PerfilArtista from "../Pages/PerfilArtista";
+
+import CadastroCliente from "../Pages/CadastroCliente";
+
+import LoginCliente from "../Pages/LoginCliente";
+
+import PerfilCliente from "../Pages/PerfilCliente";
+
+import Cadastro from "../Pages/Cadastro";
 
 const AppRoutes = () => {
   return (
@@ -26,8 +37,16 @@ const AppRoutes = () => {
 <Route path="/perfis" element={<Perfis />} />
 <Route path="/Conexao" element={<Conexao />} />
 <Route path="/FaleConosco" element={<FaleConosco />} />
-<Route path="/login" element={<Login />} />    
+<Route path="/login" element={<Login />} />   
+<Route   path="/cadastro/artista"   element={<CadastroArtista />}/>
+<Route   path="/perfil-artista"   element={<PerfilArtista />}/>
+<Route  path="/cadastro/cliente" element={<CadastroCliente />}/>
+<Route  path="/login/cliente"  element={<LoginCliente />}/>
+<Route  path="/perfil-cliente"  element={<PerfilCliente />}/>
+<Route path="/cadastro" element={<Cadastro />}
+/>
         </Route>
+      
 
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-const Login = () => {
+
+const LoginCliente = () => {
+
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
 
@@ -9,11 +11,14 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
         setErro("");
         setMensagem("");
+
         try {
+
             const resposta = await fetch(
-                "http://localhost:3000/api/artistas/login",
+                "http://localhost:3000/api/clientes/login",
                 {
                     method: "POST",
 
@@ -35,16 +40,20 @@ const Login = () => {
                 return;
             }
 
-            // Guardar o token
-           localStorage.removeItem("tokenCliente");
-localStorage.removeItem("cliente");
+            // Salva o token do cliente
+           localStorage.removeItem("token");
+localStorage.removeItem("artista");
 
-localStorage.setItem("token", dados.token);
-localStorage.setItem("artista", JSON.stringify(dados.artista));
+localStorage.setItem("tokenCliente", dados.token);
+localStorage.setItem("cliente", JSON.stringify(dados.cliente));
 window.dispatchEvent(new Event("loginStatusChanged"));
+
             setMensagem(dados.mensagem);
 
-            console.log("Artista logado:", dados.artista);
+            console.log(
+                "Cliente logado:",
+                dados.cliente
+            );
 
         } catch (erro) {
 
@@ -56,15 +65,16 @@ window.dispatchEvent(new Event("loginStatusChanged"));
         }
     };
 
-
     return (
         <div>
-            <h1>Login</h1>
+
+            <h1>Login de Cliente</h1>
+
             <form onSubmit={handleSubmit}>
+
                 <div>
-                    <label>
-                        E-mail
-                    </label>
+                    <label>E-mail</label>
+
                     <input
                         type="email"
                         value={email}
@@ -74,10 +84,10 @@ window.dispatchEvent(new Event("loginStatusChanged"));
                         required
                     />
                 </div>
+
                 <div>
-                    <label>
-                        Senha
-                    </label>
+                    <label>Senha</label>
+
                     <input
                         type="password"
                         value={senha}
@@ -87,30 +97,31 @@ window.dispatchEvent(new Event("loginStatusChanged"));
                         required
                     />
                 </div>
-                <button type="submit">
-    Entrar
-</button>
 
-<p>
-    Não possui uma conta?{" "}
-    <Link to="/cadastro/artista">
-        Cadastre-se como artista
-    </Link>
-</p>
+                <button type="submit">
+                    Entrar
+                </button>
+
             </form>
-       
+
+            <p>
+                Não possui uma conta?{" "}
+
+                <Link to="/cadastro/cliente">
+                    Cadastre-se como cliente
+                </Link>
+            </p>
+
             {mensagem && (
-                <p>
-                    {mensagem}
-                </p>
+                <p>{mensagem}</p>
             )}
+
             {erro && (
-                <p>
-                    {erro}
-                </p>
+                <p>{erro}</p>
             )}
+
         </div>
     );
 };
 
-export default Login;
+export default LoginCliente;

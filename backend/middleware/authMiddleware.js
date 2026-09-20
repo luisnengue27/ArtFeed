@@ -1,0 +1,39 @@
+const jwt = require("jsonwebtoken");
+
+const verificarToken = (req, res, next) => {
+    try {
+        const cabecalho = req.headers.authorization;
+
+        if (!cabecalho) {
+            return res.status(401).json({
+                erro: "Token não fornecido."
+            });
+        }
+
+        const partes = cabecalho.split(" ");
+
+        if (partes.length !== 2 || partes[0] !== "Bearer") {
+            return res.status(401).json({
+                erro: "Formato do token inválido."
+            });
+        }
+
+        const token = partes[1];
+
+        const usuario = jwt.verify(
+            token,
+            "chave-secreta-artfeed"
+        );
+
+        req.usuario = usuario;
+
+        next();
+
+    } catch (erro) {
+        return res.status(401).json({
+            erro: "Token inválido ou expirado."
+        });
+    }
+};
+
+module.exports = verificarToken;
