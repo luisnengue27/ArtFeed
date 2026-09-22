@@ -4,7 +4,13 @@ import { useNavigate } from "react-router-dom";
 const PerfilCliente = () => {
     const navigate = useNavigate();
 
-    const cliente = JSON.parse(localStorage.getItem("cliente"));
+
+const clienteSalvo = localStorage.getItem("cliente");
+const cliente = clienteSalvo && clienteSalvo !== "undefined"
+    ? JSON.parse(clienteSalvo)
+    : {};
+
+
 
     const [formulario, setFormulario] = useState({
         username: cliente?.username || "",

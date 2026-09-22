@@ -26,6 +26,8 @@ import PerfilCliente from "../Pages/PerfilCliente";
 
 import Cadastro from "../Pages/Cadastro";
 
+import EscolherLogin from "../Pages/EscolherLogin";
+
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -37,7 +39,7 @@ const AppRoutes = () => {
 <Route path="/perfis" element={<Perfis />} />
 <Route path="/Conexao" element={<Conexao />} />
 <Route path="/FaleConosco" element={<FaleConosco />} />
-<Route path="/login" element={<Login />} />   
+<Route path="/login" element={<EscolherLogin />} />   
 <Route   path="/cadastro/artista"   element={<CadastroArtista />}/>
 <Route   path="/perfil-artista"   element={<PerfilArtista />}/>
 <Route  path="/cadastro/cliente" element={<CadastroCliente />}/>

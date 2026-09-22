@@ -6,7 +6,7 @@ const verificarToken = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Temporário, até conectarmos ao SQL Server
-const clientes = [];
+const { sql, poolPromise } = require("../db");
 
 // ============================
 // CADASTRO
@@ -22,11 +22,17 @@ router.post("/cadastro", async (req, res) => {
             });
         }
 
-        const clienteExistente = clientes.find(
-            cliente => cliente.email === email
-        );
+      const pool = await poolPromise;
 
-        if (clienteExistente) {
+const clienteExistente = await pool.request()
+    .input("email", sql.NVarChar(150), email)
+    .query(`
+        SELECT id
+        FROM Clientes
+        WHERE email = @email
+    `);
+
+       if (clienteExistente.recordset.length > 0) {
             return res.status(409).json({
                 erro: "Este e-mail já está cadastrado."
             });
@@ -37,15 +43,25 @@ router.post("/cadastro", async (req, res) => {
             10
         );
 
-        const novoCliente = {
-            id: clientes.length + 1,
+       const resultado = await pool.request()
+    .input("username", sql.NVarChar(50), username)
+    .input("email", sql.NVarChar(150), email)
+    .input("senha", sql.NVarChar(100), senhaCriptografada)
+    .query(`
+        INSERT INTO Clientes (
             username,
             email,
-            senha: senhaCriptografada,
-            tipo: "cliente"
-        };
+            senha
+        )
+        OUTPUT INSERTED.id, INSERTED.username, INSERTED.email
+        VALUES (
+            @username,
+            @email,
+            @senha
+        )
+    `);
 
-        clientes.push(novoCliente);
+const novoCliente = resultado.recordset[0];
 
         return res.status(201).json({
             mensagem: "Cliente cadastrado com sucesso!",
@@ -80,15 +96,27 @@ router.post("/login", async (req, res) => {
             });
         }
 
-        const cliente = clientes.find(
-            cliente => cliente.email === email
-        );
+       const pool = await poolPromise;
 
-        if (!cliente) {
-            return res.status(401).json({
-                erro: "E-mail ou senha incorretos."
-            });
-        }
+const resultado = await pool.request()
+    .input("email", sql.NVarChar(150), email)
+    .query(`
+        SELECT
+            id,
+            username,
+            email,
+            senha
+        FROM Clientes
+        WHERE email = @email
+    `);
+
+    if (resultado.recordset.length === 0) {
+    return res.status(401).json({
+        erro: "E-mail ou senha incorretos."
+    });
+}
+
+const cliente = resultado.recordset[0];
 
         const senhaCorreta = await bcrypt.compare(
             senha,
@@ -101,16 +129,16 @@ router.post("/login", async (req, res) => {
             });
         }
 
-        const token = jwt.sign(
-            {
-                id: cliente.id,
-                tipo: cliente.tipo
-            },
-            "chave-secreta-artfeed",
-            {
-                expiresIn: "2h"
-            }
-        );
+       const token = jwt.sign(
+    {
+        id: cliente.id,
+        tipo: "cliente"
+    },
+    process.env.JWT_SECRET || "segredo_artfeed",
+    {
+        expiresIn: "1d"
+    }
+);
 
         return res.status(200).json({
             mensagem: "Login realizado com sucesso!",
@@ -120,7 +148,7 @@ router.post("/login", async (req, res) => {
                 id: cliente.id,
                 username: cliente.username,
                 email: cliente.email,
-                tipo: cliente.tipo
+                tipo: "cliente"
             }
         });
 
@@ -136,49 +164,104 @@ router.put("/perfil", verificarToken, async (req, res) => {
     try {
         const { username, email, senha } = req.body;
 
-        const cliente = clientes.find(
-            cliente => cliente.id === req.usuario.id
-        );
+        const pool = await poolPromise;
 
-        if (!cliente) {
+        // Pega o ID do cliente pelo token
+        const clienteId = req.usuario.id;
+
+        // Busca o cliente no banco
+        const resultado = await pool.request()
+            .input("clienteId", sql.Int, clienteId)
+            .query(`
+                SELECT
+                    id,
+                    username,
+                    email,
+                    senha
+                FROM Clientes
+                WHERE id = @clienteId
+            `);
+
+        if (resultado.recordset.length === 0) {
             return res.status(404).json({
                 erro: "Cliente não encontrado."
             });
         }
 
-        if (username) {
-            cliente.username = username;
-        }
+        const cliente = resultado.recordset[0];
 
-        if (email) {
-            const emailExistente = clientes.find(
-                outroCliente =>
-                    outroCliente.email === email &&
-                    outroCliente.id !== cliente.id
-            );
+        // Verifica se o novo e-mail já pertence a outro cliente
+        if (email && email !== cliente.email) {
 
-            if (emailExistente) {
+            const emailExistente = await pool.request()
+                .input("email", sql.NVarChar(150), email)
+                .input("clienteId", sql.Int, clienteId)
+                .query(`
+                    SELECT id
+                    FROM Clientes
+                    WHERE email = @email
+                    AND id <> @clienteId
+                `);
+
+            if (emailExistente.recordset.length > 0) {
                 return res.status(409).json({
                     erro: "Este e-mail já está cadastrado."
                 });
             }
-
-            cliente.email = email;
         }
 
+        // Atualiza username e e-mail
+        await pool.request()
+            .input("clienteId", sql.Int, clienteId)
+            .input(
+                "username",
+                sql.NVarChar(50),
+                username || cliente.username
+            )
+            .input(
+                "email",
+                sql.NVarChar(150),
+                email || cliente.email
+            )
+            .query(`
+                UPDATE Clientes
+                SET
+                    username = @username,
+                    email = @email
+                WHERE id = @clienteId
+            `);
+
+        // Atualiza a senha somente se ela foi informada
         if (senha) {
-            cliente.senha = await bcrypt.hash(senha, 10);
+
+            const senhaCriptografada = await bcrypt.hash(
+                senha,
+                10
+            );
+
+            await pool.request()
+                .input("clienteId", sql.Int, clienteId)
+                .input(
+                    "senha",
+                    sql.NVarChar(100),
+                    senhaCriptografada
+                )
+                .query(`
+                    UPDATE Clientes
+                    SET senha = @senha
+                    WHERE id = @clienteId
+                `);
         }
 
-        return res.status(200).json({
-            mensagem: "Dados atualizados com sucesso!",
-            cliente: {
-                id: cliente.id,
-                username: cliente.username,
-                email: cliente.email,
-                tipo: cliente.tipo
-            }
-        });
+return res.status(200).json({
+    mensagem: "Dados atualizados com sucesso!",
+    cliente: {
+        id: clienteId,
+        username: username || cliente.username,
+        email: email || cliente.email,
+        tipo: "cliente"
+    }
+});
 
     } catch (erro) {
         console.error(erro);

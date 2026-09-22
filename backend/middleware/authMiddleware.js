@@ -20,10 +20,10 @@ const verificarToken = (req, res, next) => {
 
         const token = partes[1];
 
-        const usuario = jwt.verify(
-            token,
-            "chave-secreta-artfeed"
-        );
+      const usuario = jwt.verify(
+    token,
+    process.env.JWT_SECRET || "segredo_artfeed"
+);
 
         req.usuario = usuario;
 

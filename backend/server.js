@@ -3,9 +3,13 @@ const cors = require("cors");
 
 const app = express();
 
+const testeRoutes = require("./routes/teste");
+const { poolPromise } = require("./db");
 const artistasRoutes = require("./routes/artistas");
 const clientesRoutes = require("./routes/clientes");
 
+
+app.use("/api/teste", testeRoutes);
 app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));

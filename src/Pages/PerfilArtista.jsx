@@ -49,10 +49,16 @@ const [formulario, setFormulario] = useState({
 
                 const resultado = await resposta.json();
 
-               if (!resposta.ok) {
-
+          if (!resposta.ok) {
     if (resposta.status === 404) {
         setPerfilExiste(false);
+
+        setFormulario(prev => ({
+            ...prev,
+            username: resultado.username || "",
+            email: resultado.email || ""
+        }));
+
         return;
     }
 
@@ -60,21 +66,25 @@ const [formulario, setFormulario] = useState({
     return;
 }
 
-                console.log(
-                    "Perfil carregado:",
-                    resultado.perfil
-                );
-                setPerfilExiste(true);
-          setFormulario({
+     console.log(
+    "Perfil carregado:",
+    resultado
+);
+
+setPerfilExiste(true);
+
+setFormulario({
     username: resultado.username,
     email: resultado.email,
     senha: "",
-    nome: resultado.perfil.nome,
-    preco: resultado.perfil.preco,
-    cidade: resultado.perfil.cidade,
-    profissao: resultado.perfil.profissao,
-    tags: resultado.perfil.tags.join(", "),
-    descricao: resultado.perfil.descricao
+    nome: resultado.nome || "",
+    preco: resultado.preco || "",
+    cidade: resultado.cidade || "",
+    profissao: resultado.profissao || "",
+    tags: resultado.tags
+        ? resultado.tags.join(", ")
+        : "",
+    descricao: resultado.descricao || ""
 });
 
             } catch (erro) {
