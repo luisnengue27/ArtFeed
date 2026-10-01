@@ -28,6 +28,9 @@ const Navbar = () => {
    const tokenArtista = localStorage.getItem("token");
 const tokenCliente = localStorage.getItem("tokenCliente");
 
+const clienteSalvo = localStorage.getItem("cliente");
+const artistaSalvo = localStorage.getItem("artista");
+
     return (
         <nav className="navbar">
             <h2 className="logo">ArtFeed</h2>
@@ -49,11 +52,11 @@ const tokenCliente = localStorage.getItem("tokenCliente");
                 />
 
                 {usuarioLogado ? (
-                   <Link
+         <Link
     to={
-        tokenArtista
-            ? "/perfil-artista"
-            : "/perfil-cliente"
+        tokenCliente
+            ? "/perfil-cliente"
+            : "/perfil-artista"
     }
     className="perfil-btn"
 >

@@ -28,6 +28,8 @@ import Cadastro from "../Pages/Cadastro";
 
 import EscolherLogin from "../Pages/EscolherLogin";
 
+
+
 const AppRoutes = () => {
   return (
     <BrowserRouter>
@@ -46,7 +48,9 @@ const AppRoutes = () => {
 <Route  path="/login/cliente"  element={<LoginCliente />}/>
 <Route  path="/perfil-cliente"  element={<PerfilCliente />}/>
 <Route path="/cadastro" element={<Cadastro />}
+
 />
+<Route path="/login/artista" element={<Login />} />
         </Route>
       
 

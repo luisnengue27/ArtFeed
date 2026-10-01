@@ -8,7 +8,7 @@ const EscolherLogin = () => {
             <p>Escolha como deseja entrar:</p>
 
             <div>
-                <Link to="/login">
+                <Link to="/login/artista">
                     <button>
                         Entrar como Artista
                     </button>

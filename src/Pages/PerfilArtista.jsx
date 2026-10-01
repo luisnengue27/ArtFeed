@@ -214,109 +214,64 @@ console.log(
     // EDITAR PERFIL
     // =========================
 
-    try {
+try {
 
-        const resposta = await fetch(
-            "http://localhost:3000/api/artistas/perfil",
-            {
-                method: "PUT",
+    const dados = new FormData();
 
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
+    dados.append("username", formulario.username);
+    dados.append("email", formulario.email);
+    dados.append("senha", formulario.senha);
+    dados.append("nome", formulario.nome);
+    dados.append("preco", formulario.preco);
+    dados.append("cidade", formulario.cidade);
+    dados.append("profissao", formulario.profissao);
+    dados.append("tags", formulario.tags);
+    dados.append("descricao", formulario.descricao);
 
-               body: JSON.stringify({
-    username: formulario.username,
-    email: formulario.email,
-    senha: formulario.senha,
-    nome: formulario.nome,
-    preco: formulario.preco,
-    cidade: formulario.cidade,
-    profissao: formulario.profissao,
-    tags: formulario.tags,
-    descricao: formulario.descricao
-})
-            }
-        );
-
-        const resultado = await resposta.json();
-        console.log("Dados recebidos do perfil:", resultado);
-
-        if (!resposta.ok) {
-            setErro(resultado.erro);
-            return;
-        }
-
-        setMensagem(resultado.mensagem);
-
-        console.log(
-            "Perfil atualizado:",
-            resultado.artista.perfil
-        );
-
-    } catch (erro) {
-
-        console.error(erro);
-
-        setErro(
-            "Não foi possível conectar com o servidor."
-        );
+    // Só envia a foto se o usuário escolher uma nova
+    if (foto) {
+        dados.append("foto", foto);
     }
 
+    const resposta = await fetch(
+        "http://localhost:3000/api/artistas/perfil",
+        {
+            method: "PUT",
 
-        const dados = new FormData();
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
 
-        dados.append("nome", formulario.nome);
-        dados.append("preco", formulario.preco);
-        dados.append("cidade", formulario.cidade);
-        dados.append("profissao", formulario.profissao);
-        dados.append("tags", formulario.tags);
-        dados.append("descricao", formulario.descricao);
-        dados.append("foto", foto);
-
-        try {
-
-            const resposta = await fetch(
-                "http://localhost:3000/api/artistas/perfil",
-                {
-                    method: "POST",
-
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    },
-
-                    body: dados
-                }
-            );
-
-            const resultado = await resposta.json();
-            console.log("RESULTADO COMPLETO:", resultado);
-console.log("USERNAME:", resultado.username);
-console.log("EMAIL:", resultado.email);
-
-            if (!resposta.ok) {
-                setErro(resultado.erro);
-                return;
-            }
-
-            setMensagem(resultado.mensagem);
-
-            console.log(
-                "Perfil:",
-                resultado.perfil
-            );
-
-        } catch (erro) {
-
-            console.error(erro);
-
-            setErro(
-                "Não foi possível conectar com o servidor."
-            );
+            body: dados
         }
-    };
+    );
 
+    const resultado = await resposta.json();
+
+    console.log("Dados recebidos do perfil:", resultado);
+
+    if (!resposta.ok) {
+        setErro(resultado.erro);
+        return;
+    }
+
+    setMensagem(resultado.mensagem);
+
+    console.log(
+        "Perfil atualizado:",
+        resultado
+    );
+
+} catch (erro) {
+
+    console.error(erro);
+
+    setErro(
+        "Não foi possível conectar com o servidor."
+    );
+}
+   
+};
     return (
         <div>
 
@@ -471,6 +426,5 @@ console.log("EMAIL:", resultado.email);
 </button>
         </div>
     );
-};
-
+}
 export default PerfilArtista;

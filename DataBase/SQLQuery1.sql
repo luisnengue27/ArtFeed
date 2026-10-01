@@ -220,4 +220,13 @@ VALUES (
     5.0
 );
 
+
+
+
+
+USE ArtFeed;
+GO
+
+SELECT * FROM Artistas;
+
 -- fim dos testes marotos ^^^^

@@ -47,20 +47,20 @@ router.post("/cadastro", async (req, res) => {
 
         const pool = await poolPromise;
 
-        // Verifica se o e-mail já existe no banco
-        const artistaExistente = await pool.request()
-            .input("email", sql.NVarChar(150), email)
-            .query(`
-                SELECT id
-                FROM Artistas
-                WHERE email = @email
-            `);
+// Verifica se o e-mail já existe no banco
+const artistaExistente = await pool.request()
+    .input("email", sql.NVarChar(150), email)
+    .query(`
+        SELECT id
+        FROM Artistas
+        WHERE email = @email
+    `);
 
-        if (artistaExistente.recordset.length > 0) {
-            return res.status(409).json({
-                erro: "Este e-mail já está cadastrado."
-            });
-        }
+if (artistaExistente.recordset.length > 0) {
+    return res.status(409).json({
+        erro: "Este e-mail já está cadastrado."
+    });
+}
 
         // Criptografa a senha
         const senhaCriptografada = await bcrypt.hash(
@@ -719,7 +719,9 @@ router.get(
 router.put(
     "/perfil",
     verificarToken,
+    upload.single("foto"),
     async (req, res) => {
+
         try {
             const {
                 username,
@@ -841,25 +843,43 @@ router.put(
             }
 
             // Atualiza os dados do PerfilArtista
-            await pool.request()
-                .input("artistaId", sql.Int, artistaId)
-                .input("nome", sql.NVarChar(100), nome)
-               .input("preco", sql.NVarChar(50), preco)
-                .input("cidade", sql.NVarChar(100), cidade)
-                .input("profissao", sql.NVarChar(100), profissao)
-                .input("tags", sql.NVarChar(500), tags)
-                .input("descricao", sql.NVarChar(sql.MAX), descricao)
-                .query(`
-                    UPDATE PerfilArtista
-                    SET
-                        nome = @nome,
-                        preco = @preco,
-                        cidade = @cidade,
-                        profissao = @profissao,
-                        tags = @tags,
-                        descricao = @descricao
-                    WHERE artista_id = @artistaId
-                `);
+        const requestPerfil = pool.request()
+    .input("artistaId", sql.Int, artistaId)
+    .input("nome", sql.NVarChar(100), nome)
+    .input("preco", sql.NVarChar(50), preco)
+    .input("cidade", sql.NVarChar(100), cidade)
+    .input("profissao", sql.NVarChar(100), profissao)
+    .input("tags", sql.NVarChar(500), tags)
+    .input("descricao", sql.NVarChar(sql.MAX), descricao);
+
+let queryPerfil = `
+    UPDATE PerfilArtista
+    SET
+        nome = @nome,
+        preco = @preco,
+        cidade = @cidade,
+        profissao = @profissao,
+        tags = @tags,
+        descricao = @descricao
+`;
+
+if (req.file) {
+    requestPerfil.input(
+        "foto",
+        sql.NVarChar(255),
+        req.file.filename
+    );
+
+    queryPerfil += `,
+        foto_perfil = @foto
+    `;
+}
+
+queryPerfil += `
+    WHERE artista_id = @artistaId
+`;
+
+await requestPerfil.query(queryPerfil);
 
             return res.status(200).json({
                 mensagem: "Perfil atualizado com sucesso!"
