@@ -38,7 +38,7 @@ const [formulario, setFormulario] = useState({
             try {
 
                 const resposta = await fetch(
-                    "http://localhost:3000/api/artistas/perfil",
+                    "/api/artistas/perfil",
                     {
                         method: "GET",
                         headers: {
@@ -163,7 +163,7 @@ setFormulario({
         try {
 
             const resposta = await fetch(
-                "http://localhost:3000/api/artistas/perfil",
+                "/api/artistas/perfil",
                 {
                     method: "POST",
                     headers: {
@@ -234,7 +234,7 @@ try {
     }
 
     const resposta = await fetch(
-        "http://localhost:3000/api/artistas/perfil",
+        "/api/artistas/perfil",
         {
             method: "PUT",
 

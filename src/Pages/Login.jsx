@@ -12,8 +12,8 @@ const Login = () => {
         setErro("");
         setMensagem("");
         try {
-            const resposta = await fetch(
-                "http://localhost:3000/api/artistas/login",
+           const resposta = await fetch(
+         "/api/artistas/login",
                 {
                     method: "POST",
 

@@ -50,7 +50,7 @@ const cliente = clienteSalvo && clienteSalvo !== "undefined"
 
         try {
             const resposta = await fetch(
-                "http://localhost:3000/api/clientes/perfil",
+                "/api/clientes/perfil",
                 {
                     method: "PUT",
                     headers: {

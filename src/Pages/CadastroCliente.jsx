@@ -33,8 +33,8 @@ const navigate = useNavigate();
 
         try {
 
-            const resposta = await fetch(
-                "http://localhost:3000/api/clientes/cadastro",
+         const resposta = await fetch(
+    "/api/clientes/cadastro",
                 {
                     method: "POST",
 

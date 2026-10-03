@@ -14,7 +14,7 @@ const Perfis = () => {
             try {
 
                 const resposta = await fetch(
-                    "http://localhost:3000/api/artistas"
+                    "/api/artistas"
                 );
 
                 const dados = await resposta.json();

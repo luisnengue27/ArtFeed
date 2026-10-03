@@ -17,8 +17,8 @@ const LoginCliente = () => {
 
         try {
 
-            const resposta = await fetch(
-                "http://localhost:3000/api/clientes/login",
+           const resposta = await fetch(
+    "/api/clientes/login",
                 {
                     method: "POST",
 

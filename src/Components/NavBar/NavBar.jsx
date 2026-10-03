@@ -3,14 +3,20 @@ import { Link } from "react-router-dom";
 import "../NavBar/NavBar.css";
 
 const Navbar = () => {
-    const [usuarioLogado, setUsuarioLogado] = useState(false);
+    const [tipoUsuario, setTipoUsuario] = useState(null);
 
     useEffect(() => {
         const verificarLogin = () => {
             const tokenArtista = localStorage.getItem("token");
             const tokenCliente = localStorage.getItem("tokenCliente");
 
-            setUsuarioLogado(!!(tokenArtista || tokenCliente));
+            if (tokenCliente) {
+                setTipoUsuario("cliente");
+            } else if (tokenArtista) {
+                setTipoUsuario("artista");
+            } else {
+                setTipoUsuario(null);
+            }
         };
 
         verificarLogin();
@@ -25,22 +31,30 @@ const Navbar = () => {
         };
     }, []);
 
-   const tokenArtista = localStorage.getItem("token");
-const tokenCliente = localStorage.getItem("tokenCliente");
-
-const clienteSalvo = localStorage.getItem("cliente");
-const artistaSalvo = localStorage.getItem("artista");
-
     return (
         <nav className="navbar">
             <h2 className="logo">ArtFeed</h2>
 
             <ul className="nav-links">
-                <li><Link to="/">Início</Link></li>
-                <li><Link to="/explorar">Explorar</Link></li>
-                <li><Link to="/perfis">Perfis</Link></li>
-                <li><Link to="/conexao">Conexões</Link></li>
-                <li><Link to="/Faleconosco">Fale Conosco</Link></li>
+                <li>
+                    <Link to="/">Início</Link>
+                </li>
+
+                <li>
+                    <Link to="/explorar">Explorar</Link>
+                </li>
+
+                <li>
+                    <Link to="/perfis">Perfis</Link>
+                </li>
+
+                <li>
+                    <Link to="/conexao">Conexões</Link>
+                </li>
+
+                <li>
+                    <Link to="/FaleConosco">Fale Conosco</Link>
+                </li>
             </ul>
 
             <div className="nav-actions">
@@ -51,17 +65,17 @@ const artistaSalvo = localStorage.getItem("artista");
                     className="search"
                 />
 
-                {usuarioLogado ? (
-         <Link
-    to={
-        tokenCliente
-            ? "/perfil-cliente"
-            : "/perfil-artista"
-    }
-    className="perfil-btn"
->
-    Meu Perfil
-</Link>
+                {tipoUsuario ? (
+                    <Link
+                        to={
+                            tipoUsuario === "cliente"
+                                ? "/perfil-cliente"
+                                : "/perfil-artista"
+                        }
+                        className="perfil-btn"
+                    >
+                        Meu Perfil
+                    </Link>
                 ) : (
                     <>
                         <Link

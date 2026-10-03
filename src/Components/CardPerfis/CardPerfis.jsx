@@ -29,7 +29,7 @@ const CardPerfis = ({
             // ============================
 
             const respostaSeguidores = await fetch(
-                `http://localhost:3000/api/artistas/${id}/seguidores`
+                `/api/artistas/${id}/seguidores`
             );
 
             const dadosSeguidores =
@@ -53,7 +53,7 @@ const CardPerfis = ({
             }
 
             const respostaSeguindo = await fetch(
-                `http://localhost:3000/api/artistas/${id}/seguindo`,
+                `/api/artistas/${id}/seguindo`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -95,7 +95,7 @@ const handleSeguir = async () => {
         if (seguindo) {
 
             const resposta = await fetch(
-                `http://localhost:3000/api/artistas/${id}/seguir`,
+                `/api/artistas/${id}/seguir`,
                 {
                     method: "DELETE",
 
@@ -124,7 +124,7 @@ const handleSeguir = async () => {
 
         // Se não está seguindo, segue
         const resposta = await fetch(
-            `http://localhost:3000/api/artistas/${id}/seguir`,
+            `/api/artistas/${id}/seguir`,
             {
                 method: "POST",
 
@@ -168,8 +168,8 @@ const handleSeguir = async () => {
             {/* Parte superior */}
             <div className={styles["card-topo"]}>
 
-            <img
-    src={`http://localhost:3000${imagem}`}
+        <img
+    src={imagem}
     alt={`Foto de ${nome}`}
     className={styles["foto-artista"]}
 />

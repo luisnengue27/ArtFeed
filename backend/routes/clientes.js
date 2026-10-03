@@ -65,12 +65,12 @@ const novoCliente = resultado.recordset[0];
 
         return res.status(201).json({
             mensagem: "Cliente cadastrado com sucesso!",
-            cliente: {
-                id: novoCliente.id,
-                username: novoCliente.username,
-                email: novoCliente.email,
-                tipo: novoCliente.tipo
-            }
+           cliente: {
+    id: novoCliente.id,
+    username: novoCliente.username,
+    email: novoCliente.email,
+    tipo: "cliente"
+}
         });
 
     } catch (erro) {
