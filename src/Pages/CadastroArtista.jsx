@@ -35,7 +35,7 @@ const CadastroArtista = () => {
         try {
 
             const resposta = await fetch(
-                "http://localhost:3000/api/artistas/cadastro",
+                 "https://redesigned-broccoli-4q6prg9ppj52p54-3000.app.github.dev/api/artistas/cadastro",
                 {
                     method: "POST",
 
