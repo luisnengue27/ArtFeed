@@ -1,4 +1,7 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({
+    path: path.join(__dirname, ".env")
+});
 
 const sql = require("mssql");
 
@@ -12,7 +15,10 @@ const config = {
     options: {
         encrypt: true,
         trustServerCertificate: false
-    }
+    },
+
+    connectionTimeout: 30000,
+    requestTimeout: 30000
 };
 
 const poolPromise = sql.connect(config)
