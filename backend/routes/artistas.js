@@ -428,6 +428,70 @@ router.get("/", async (req, res) => {
         });
     }
 });
+router.delete("/artes/:arteId", verificarToken, async (req, res) => {
+    try {
+        const artistaId = req.usuario.id;
+        const arteId = parseInt(req.params.arteId);
+
+        if (isNaN(arteId)) {
+            return res.status(400).json({
+                erro: "ID da arte inválido."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const verificarArte = await pool.request()
+            .input("arteId", sql.Int, arteId)
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT id, imagem
+                FROM Artes
+                WHERE id = @arteId
+                AND artista_id = @artistaId
+            `);
+
+        if (verificarArte.recordset.length === 0) {
+            return res.status(404).json({
+                erro: "Arte não encontrada."
+            });
+        }
+
+        const imagem = verificarArte.recordset[0].imagem;
+
+        await pool.request()
+            .input("arteId", sql.Int, arteId)
+            .query(`
+                DELETE FROM Artes
+                WHERE id = @arteId
+            `);
+
+        const fs = require("fs");
+        const path = require("path");
+
+        const caminhoImagem = path.join(
+            __dirname,
+            "..",
+            "uploads",
+            imagem
+        );
+
+        if (fs.existsSync(caminhoImagem)) {
+            fs.unlinkSync(caminhoImagem);
+        }
+
+        return res.status(200).json({
+            mensagem: "Arte excluída com sucesso."
+        });
+
+    } catch (error) {
+        console.error("Erro ao excluir arte:", error);
+
+        return res.status(500).json({
+            erro: "Erro ao excluir arte."
+        });
+    }
+});
 // ============================
 // SEGUIR ARTISTA
 // ============================
@@ -439,19 +503,19 @@ router.post(
 
         try {
 
-            // Apenas clientes podem seguir artistas
-            if (req.usuario.tipo !== "cliente") {
-                return res.status(403).json({
-                    erro: "Apenas clientes podem seguir artistas."
+            const artistaId = Number(req.params.artistaId);
+            const usuarioId = req.usuario.id;
+            const tipoUsuario = req.usuario.tipo;
+
+            if (isNaN(artistaId)) {
+                return res.status(400).json({
+                    erro: "ID do artista inválido."
                 });
             }
 
-            const artistaId = Number(req.params.artistaId);
-            const clienteId = req.usuario.id;
-
             const pool = await poolPromise;
 
-            // Verifica se o artista existe
+            // Verifica se o artista que será seguido existe
             const artista = await pool.request()
                 .input("artistaId", sql.Int, artistaId)
                 .query(`
@@ -466,45 +530,107 @@ router.post(
                 });
             }
 
-            // Verifica se o cliente já segue o artista
-            const jaSegue = await pool.request()
-                .input("clienteId", sql.Int, clienteId)
-                .input("artistaId", sql.Int, artistaId)
-                .query(`
-                    SELECT id
-                    FROM Seguidores
-                    WHERE cliente_id = @clienteId
-                    AND artista_id = @artistaId
-                `);
+            // ==================================
+            // ARTISTA SEGUINDO OUTRO ARTISTA
+            // ==================================
 
-            if (jaSegue.recordset.length > 0) {
-                return res.status(409).json({
-                    erro: "Você já segue este artista."
+            if (tipoUsuario === "artista") {
+
+                // Impede seguir a si mesmo
+                if (usuarioId === artistaId) {
+                    return res.status(400).json({
+                        erro: "Você não pode seguir a si mesmo."
+                    });
+                }
+
+                // Verifica se já segue
+                const jaSegue = await pool.request()
+                    .input("artistaSeguidorId", sql.Int, usuarioId)
+                    .input("artistaId", sql.Int, artistaId)
+                    .query(`
+                        SELECT id
+                        FROM Seguidores
+                        WHERE artista_seguidor_id = @artistaSeguidorId
+                        AND artista_id = @artistaId
+                    `);
+
+                if (jaSegue.recordset.length > 0) {
+                    return res.status(409).json({
+                        erro: "Você já segue este artista."
+                    });
+                }
+
+                // Cria o relacionamento
+                await pool.request()
+                    .input("artistaSeguidorId", sql.Int, usuarioId)
+                    .input("artistaId", sql.Int, artistaId)
+                    .query(`
+                        INSERT INTO Seguidores (
+                            artista_seguidor_id,
+                            artista_id
+                        )
+                        VALUES (
+                            @artistaSeguidorId,
+                            @artistaId
+                        )
+                    `);
+
+                return res.status(201).json({
+                    mensagem: "Artista seguido com sucesso!"
                 });
             }
 
-            // Cria o relacionamento no banco
-            await pool.request()
-                .input("clienteId", sql.Int, clienteId)
-                .input("artistaId", sql.Int, artistaId)
-                .query(`
-                    INSERT INTO Seguidores (
-                        cliente_id,
-                        artista_id
-                    )
-                    VALUES (
-                        @clienteId,
-                        @artistaId
-                    )
-                `);
+            // ==================================
+            // CLIENTE SEGUINDO ARTISTA
+            // ==================================
 
-            return res.status(201).json({
-                mensagem: "Artista seguido com sucesso!"
+            if (tipoUsuario === "cliente") {
+
+                const jaSegue = await pool.request()
+                    .input("clienteId", sql.Int, usuarioId)
+                    .input("artistaId", sql.Int, artistaId)
+                    .query(`
+                        SELECT id
+                        FROM Seguidores
+                        WHERE cliente_id = @clienteId
+                        AND artista_id = @artistaId
+                    `);
+
+                if (jaSegue.recordset.length > 0) {
+                    return res.status(409).json({
+                        erro: "Você já segue este artista."
+                    });
+                }
+
+                await pool.request()
+                    .input("clienteId", sql.Int, usuarioId)
+                    .input("artistaId", sql.Int, artistaId)
+                    .query(`
+                        INSERT INTO Seguidores (
+                            cliente_id,
+                            artista_id
+                        )
+                        VALUES (
+                            @clienteId,
+                            @artistaId
+                        )
+                    `);
+
+                return res.status(201).json({
+                    mensagem: "Artista seguido com sucesso!"
+                });
+            }
+
+            return res.status(403).json({
+                erro: "Tipo de usuário não autorizado."
             });
 
         } catch (erro) {
 
-            console.error("❌ Erro ao seguir artista:", erro);
+            console.error(
+                "❌ Erro ao seguir artista:",
+                erro
+            );
 
             return res.status(500).json({
                 erro: "Erro interno do servidor."
@@ -523,62 +649,72 @@ router.delete(
 
         try {
 
-            // Apenas clientes podem deixar de seguir
-            if (req.usuario.tipo !== "cliente") {
-                return res.status(403).json({
-                    erro: "Apenas clientes podem deixar de seguir artistas."
+            const artistaId = Number(req.params.artistaId);
+            const usuarioId = req.usuario.id;
+            const tipoUsuario = req.usuario.tipo;
+
+            if (isNaN(artistaId)) {
+                return res.status(400).json({
+                    erro: "ID do artista inválido."
                 });
             }
-
-            const artistaId = Number(req.params.artistaId);
-            const clienteId = req.usuario.id;
 
             const pool = await poolPromise;
 
-            // Verifica se o artista existe
-            const artista = await pool.request()
-                .input("artistaId", sql.Int, artistaId)
-                .query(`
-                    SELECT id
-                    FROM Artistas
-                    WHERE id = @artistaId
-                `);
+            // ============================
+            // ARTISTA
+            // ============================
 
-            if (artista.recordset.length === 0) {
-                return res.status(404).json({
-                    erro: "Artista não encontrado."
+            if (tipoUsuario === "artista") {
+
+                const resultado = await pool.request()
+                    .input("artistaSeguidorId", sql.Int, usuarioId)
+                    .input("artistaId", sql.Int, artistaId)
+                    .query(`
+                        DELETE FROM Seguidores
+                        WHERE artista_seguidor_id = @artistaSeguidorId
+                        AND artista_id = @artistaId
+                    `);
+
+                if (resultado.rowsAffected[0] === 0) {
+                    return res.status(404).json({
+                        erro: "Você não segue este artista."
+                    });
+                }
+
+                return res.status(200).json({
+                    mensagem: "Você deixou de seguir o artista."
                 });
             }
 
-            // Verifica se o cliente está seguindo o artista
-            const seguindo = await pool.request()
-                .input("clienteId", sql.Int, clienteId)
-                .input("artistaId", sql.Int, artistaId)
-                .query(`
-                    SELECT id
-                    FROM Seguidores
-                    WHERE cliente_id = @clienteId
-                    AND artista_id = @artistaId
-                `);
+            // ============================
+            // CLIENTE
+            // ============================
 
-            if (seguindo.recordset.length === 0) {
-                return res.status(404).json({
-                    erro: "Você não segue este artista."
+            if (tipoUsuario === "cliente") {
+
+                const resultado = await pool.request()
+                    .input("clienteId", sql.Int, usuarioId)
+                    .input("artistaId", sql.Int, artistaId)
+                    .query(`
+                        DELETE FROM Seguidores
+                        WHERE cliente_id = @clienteId
+                        AND artista_id = @artistaId
+                    `);
+
+                if (resultado.rowsAffected[0] === 0) {
+                    return res.status(404).json({
+                        erro: "Você não segue este artista."
+                    });
+                }
+
+                return res.status(200).json({
+                    mensagem: "Você deixou de seguir o artista."
                 });
             }
 
-            // Remove o relacionamento do banco
-            await pool.request()
-                .input("clienteId", sql.Int, clienteId)
-                .input("artistaId", sql.Int, artistaId)
-                .query(`
-                    DELETE FROM Seguidores
-                    WHERE cliente_id = @clienteId
-                    AND artista_id = @artistaId
-                `);
-
-            return res.status(200).json({
-                mensagem: "Você deixou de seguir o artista."
+            return res.status(403).json({
+                erro: "Tipo de usuário não autorizado."
             });
 
         } catch (erro) {
@@ -660,15 +796,15 @@ router.get(
 
         try {
 
-            // Apenas clientes podem verificar se estão seguindo
-            if (req.usuario.tipo !== "cliente") {
-                return res.status(403).json({
-                    erro: "Apenas clientes podem realizar esta ação."
+            const artistaId = Number(req.params.artistaId);
+            const usuarioId = req.usuario.id;
+            const tipoUsuario = req.usuario.tipo;
+
+            if (isNaN(artistaId)) {
+                return res.status(400).json({
+                    erro: "ID do artista inválido."
                 });
             }
-
-            const artistaId = Number(req.params.artistaId);
-            const clienteId = req.usuario.id;
 
             const pool = await poolPromise;
 
@@ -687,16 +823,63 @@ router.get(
                 });
             }
 
-            // Verifica se existe o relacionamento
-            const resultado = await pool.request()
-                .input("clienteId", sql.Int, clienteId)
-                .input("artistaId", sql.Int, artistaId)
-                .query(`
-                    SELECT id
-                    FROM Seguidores
-                    WHERE cliente_id = @clienteId
-                    AND artista_id = @artistaId
-                `);
+            let resultado;
+
+            // ============================
+            // ARTISTA
+            // ============================
+
+            if (tipoUsuario === "artista") {
+
+                resultado = await pool.request()
+                    .input(
+                        "artistaSeguidorId",
+                        sql.Int,
+                        usuarioId
+                    )
+                    .input(
+                        "artistaId",
+                        sql.Int,
+                        artistaId
+                    )
+                    .query(`
+                        SELECT id
+                        FROM Seguidores
+                        WHERE artista_seguidor_id = @artistaSeguidorId
+                        AND artista_id = @artistaId
+                    `);
+            }
+
+            // ============================
+            // CLIENTE
+            // ============================
+
+            else if (tipoUsuario === "cliente") {
+
+                resultado = await pool.request()
+                    .input(
+                        "clienteId",
+                        sql.Int,
+                        usuarioId
+                    )
+                    .input(
+                        "artistaId",
+                        sql.Int,
+                        artistaId
+                    )
+                    .query(`
+                        SELECT id
+                        FROM Seguidores
+                        WHERE cliente_id = @clienteId
+                        AND artista_id = @artistaId
+                    `);
+            }
+
+            else {
+                return res.status(403).json({
+                    erro: "Tipo de usuário não autorizado."
+                });
+            }
 
             return res.status(200).json({
                 seguindo: resultado.recordset.length > 0
@@ -897,4 +1080,309 @@ await requestPerfil.query(queryPerfil);
         }
     }
 );
+// ===============================
+// ARTES DO PORTFÓLIO
+// ===============================
+
+// POST - cadastrar uma nova arte
+router.post(
+    "/artes",
+    verificarToken,
+    upload.single("imagem"),
+    async (req, res) => {
+        try {
+            const artistaId = req.usuario.id;
+
+            const { titulo } = req.body;
+
+            if (!req.file) {
+                return res.status(400).json({
+                    erro: "A imagem da arte é obrigatória"
+                });
+            }
+
+            const pool = await poolPromise;
+
+            // Confirma se o artista existe
+            const artista = await pool.request()
+                .input("id", sql.Int, artistaId)
+                .query(`
+                    SELECT id
+                    FROM Artistas
+                    WHERE id = @id
+                `);
+
+            if (artista.recordset.length === 0) {
+                return res.status(404).json({
+                    erro: "Artista não encontrado"
+                });
+            }
+
+            const resultado = await pool.request()
+                .input("artista_id", sql.Int, artistaId)
+                .input("titulo", sql.NVarChar(150), titulo || null)
+                .input("imagem", sql.NVarChar(500), req.file.filename)
+                .query(`
+                    INSERT INTO Artes
+                        (artista_id, titulo, imagem)
+                    OUTPUT
+                        INSERTED.id,
+                        INSERTED.artista_id,
+                        INSERTED.titulo,
+                        INSERTED.imagem,
+                        INSERTED.data_publicacao
+                    VALUES
+                        (@artista_id, @titulo, @imagem)
+                `);
+
+            res.status(201).json({
+                mensagem: "Arte adicionada com sucesso",
+                arte: resultado.recordset[0]
+            });
+
+        } catch (error) {
+            console.error("Erro ao cadastrar arte:", error);
+
+            res.status(500).json({
+                erro: "Erro ao cadastrar arte"
+            });
+        }
+    }
+);
+// ===============================
+// ARTES DO ARTISTA LOGADO
+// ===============================
+
+router.get("/minhas-artes", verificarToken, async (req, res) => {
+    try {
+        const artistaId = req.usuario.id;
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .input("artista_id", sql.Int, artistaId)
+            .query(`
+                SELECT
+                    id,
+                    artista_id,
+                    titulo,
+                    imagem,
+                    data_publicacao
+                FROM Artes
+                WHERE artista_id = @artista_id
+                ORDER BY data_publicacao DESC
+            `);
+
+        const API_URL =
+            process.env.API_URL || "http://localhost:3000";
+
+        const artes = resultado.recordset.map(arte => ({
+            ...arte,
+            imagem: `${API_URL}/uploads/${arte.imagem}`
+        }));
+
+        return res.status(200).json(artes);
+
+    } catch (error) {
+        console.error("Erro ao buscar minhas artes:", error);
+
+        return res.status(500).json({
+            erro: "Erro ao buscar suas artes."
+        });
+    }
+});
+// GET - listar todas as artes
+router.get("/artes", async (req, res) => {
+    try {
+        const pool = await poolPromise;
+
+        const resultado = await pool.request().query(`
+            SELECT
+                Artes.id,
+                Artes.artista_id,
+                Artes.titulo,
+                Artes.imagem,
+                Artes.data_publicacao,
+                Artistas.username
+            FROM Artes
+            INNER JOIN Artistas
+                ON Artes.artista_id = Artistas.id
+            ORDER BY Artes.data_publicacao DESC
+        `);
+
+        const API_URL =
+            process.env.API_URL || "http://localhost:3000";
+
+        const artes = resultado.recordset.map(arte => ({
+            ...arte,
+            imagem: `${API_URL}/uploads/${arte.imagem}`
+        }));
+
+        res.json(artes);
+
+    } catch (error) {
+        console.error("Erro ao buscar artes:", error);
+
+        res.status(500).json({
+            erro: "Erro ao buscar artes"
+        });
+    }
+});
+// ===============================
+// PORTFÓLIO PÚBLICO DO ARTISTA
+// ===============================
+
+router.get(
+    "/portfolio/:artistaId",
+    verificarToken,
+    async (req, res) => {
+    try {
+        const artistaId = parseInt(req.params.artistaId);
+
+        if (isNaN(artistaId)) {
+            return res.status(400).json({
+                erro: "ID do artista inválido"
+            });
+        }
+
+        const pool = await poolPromise;
+
+        // Primeiro verifica se o artista existe
+        const artistaBase = await pool.request()
+            .input("artista_id", sql.Int, artistaId)
+            .query(`
+                SELECT
+                    id,
+                    username,
+                    email
+                FROM Artistas
+                WHERE id = @artista_id
+            `);
+
+        // Artista realmente não existe
+        if (artistaBase.recordset.length === 0) {
+            return res.status(404).json({
+                erro: "Artista não encontrado"
+            });
+        }
+
+        // Agora busca o perfil do artista
+        const artistaResult = await pool.request()
+            .input("artista_id", sql.Int, artistaId)
+            .query(`
+                SELECT
+                    Artistas.id,
+                    Artistas.username,
+                    Artistas.email,
+                    PerfilArtista.nome,
+                    PerfilArtista.preco,
+                    PerfilArtista.cidade,
+                    PerfilArtista.profissao,
+                    PerfilArtista.tags,
+                    PerfilArtista.descricao,
+                    PerfilArtista.foto_perfil
+                FROM Artistas
+                LEFT JOIN PerfilArtista
+                    ON Artistas.id = PerfilArtista.artista_id
+                WHERE Artistas.id = @artista_id
+            `);
+
+        const artista = artistaResult.recordset[0];
+
+        // Artista existe, mas ainda não possui perfil
+        if (!artista.nome) {
+            return res.status(404).json({
+                erro: "Este artista ainda não possui um perfil."
+            });
+        }
+
+        // Busca as artes do portfólio
+        const artesResult = await pool.request()
+            .input("artista_id", sql.Int, artistaId)
+            .query(`
+                SELECT
+                    id,
+                    artista_id,
+                    titulo,
+                    imagem,
+                    data_publicacao
+                FROM Artes
+                WHERE artista_id = @artista_id
+                ORDER BY data_publicacao DESC
+            `);
+
+        const API_URL =
+            process.env.API_URL || "http://localhost:3000";
+
+        // URL da foto de perfil
+        if (artista.foto_perfil) {
+            artista.foto_perfil =
+                `${API_URL}/uploads/${artista.foto_perfil}`;
+        }
+
+        // URLs das artes
+        const artes = artesResult.recordset.map(arte => ({
+            ...arte,
+            imagem: `${API_URL}/uploads/${arte.imagem}`
+        }));
+
+        return res.json({
+            artista,
+            artes
+        });
+
+    } catch (error) {
+        console.error("Erro ao buscar portfólio:", error);
+
+        return res.status(500).json({
+            erro: "Erro ao buscar portfólio"
+        });
+    }
+});
+
+//
+//    coiso do carrossel
+//
+router.get("/artes-carrossel", async (req, res) => {
+
+    try {
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .query(`
+                SELECT
+                    Artes.id,
+                    Artes.titulo,
+                    Artes.imagem,
+                    Artes.artista_id,
+                    PerfilArtista.nome AS artista_nome
+                FROM Artes
+                INNER JOIN PerfilArtista
+                    ON Artes.artista_id = PerfilArtista.artista_id
+            `);
+
+        const API_URL =
+            process.env.API_URL || "http://localhost:3000";
+
+        const artes = resultado.recordset.map(arte => ({
+            ...arte,
+            imagem: `${API_URL}/uploads/${arte.imagem}`
+        }));
+
+        return res.json(artes);
+
+    } catch (erro) {
+
+        console.error(
+            "❌ Erro ao buscar artes do carrossel:",
+            erro
+        );
+
+        return res.status(500).json({
+            erro: "Erro ao buscar artes."
+        });
+    }
+});
+
 module.exports = router;

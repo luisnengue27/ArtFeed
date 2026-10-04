@@ -53,3 +53,27 @@
     text-decoration:none;
     font-size: 27px;
 }
+.login-btn:hover{
+    background:#4138f7;
+    color:white;
+    padding:13px 25px;
+    border-radius:20px;
+    text-decoration:none;
+    font-size: 28px;
+}
+.cadastro-btn{
+    background:#6c63ff;
+    color:white;
+    padding:12px 22px;
+    border-radius:20px;
+    text-decoration:none;
+    font-size: 26px;
+}
+.cadastro-btn:hover{
+    background:#4138f7;
+    color:white;
+    padding:13px 25px;
+    border-radius:20px;
+    text-decoration:none;
+    font-size: 28px;
+}

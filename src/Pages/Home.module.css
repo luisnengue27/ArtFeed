@@ -31,37 +31,20 @@
     left: 92%;
     width: 130px;
     bottom: 10%;
+    z-index: 6;
 }
-.card {
+
+
+ .fix {
     position: absolute;
-    display: flex;
-    gap: 30px;
-
-    justify-content: center;
-    align-items: center;
-
-  top: 131%;
+    width: 100%;
+    overflow: hidden;
+    left: 0;
+    padding-top: 1100px;
 }
-    .carde {
-        position: absolute;
-        display: flex;
-        gap: 30px;
-
-        justify-content: center;
-        align-items: center;
-        padding-top: 20px;
-        top: 150%;
-    
-    }
-    .carder {
-        position: absolute;
-        display: flex;
-        gap: 30px;
-
-        justify-content: center;
-        align-items: center;
-        padding-top: 20px;
-        top: 170%;
-    
-    }
+body {
+    overflow-x: hidden;
+    padding: 0;
+    margin: 0;
+}
 

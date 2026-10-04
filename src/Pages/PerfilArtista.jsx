@@ -4,6 +4,7 @@ import { apiFetch } from "../services/api";
 
 const PerfilArtista = () => {
 const [perfilExiste, setPerfilExiste] = useState(false);
+
     const navigate = useNavigate();
 const [formulario, setFormulario] = useState({
     username: "",
@@ -19,11 +20,8 @@ const [formulario, setFormulario] = useState({
 
     const [foto, setFoto] = useState(null);
 
-    const [mensagem, setMensagem] = useState("");
-    const [erro, setErro] = useState("");
-
-
-
+   const [mensagem, setMensagem] = useState("");
+const [erro, setErro] = useState("");
     useEffect(() => {
         const carregarPerfil = async () => {
 
@@ -99,7 +97,7 @@ setFormulario({
         };
 
         carregarPerfil();
-
+       
     }, []);
 
 
@@ -279,6 +277,7 @@ try {
             <h1>Meu Perfil de Artista</h1>
 
             <form onSubmit={handleSubmit}>
+            
                 <label>Username</label>
 <input
     type="text"
@@ -411,6 +410,12 @@ try {
                <button type="submit">
     {perfilExiste ? "Salvar alterações" : "Criar Perfil"}
 </button>
+<button
+    type="button"
+    onClick={() => navigate("/gerenciar-portfolio")}
+>
+    Gerenciar meu portfólio
+</button>
 
             </form>
 
@@ -422,6 +427,8 @@ try {
             {erro && (
                 <p>{erro}</p>
             )}
+
+         
 <button onClick={handleLogout}>
     Deslogar
 </button>

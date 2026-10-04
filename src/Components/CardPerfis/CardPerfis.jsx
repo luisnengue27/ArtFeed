@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import styles from "./CardPerfis.module.css";
 import { apiFetch } from "../../services/api";
+import { Link } from "react-router-dom";
 
 const CardPerfis = ({
     id,
@@ -42,15 +43,20 @@ const CardPerfis = ({
             }
 
             // ============================
-            // VERIFICAR SE O CLIENTE SEGUE
-            // ============================
+// VERIFICAR SE O USUÁRIO SEGUE
+// ============================
 
-            const token =
-                localStorage.getItem("tokenCliente");
+const tokenCliente =
+    localStorage.getItem("tokenCliente");
 
-            if (!token) {
-                return;
-            }
+const tokenArtista =
+    localStorage.getItem("token");
+
+const token = tokenCliente || tokenArtista;
+
+if (!token) {
+    return;
+}
 
             const respostaSeguindo = await apiFetch(
                 `/api/artistas/${id}/seguindo`,
@@ -82,10 +88,16 @@ const CardPerfis = ({
 }, [id]);
 const handleSeguir = async () => {
 
-    const token = localStorage.getItem("tokenCliente");
+    const tokenCliente = localStorage.getItem("tokenCliente");
+    const tokenArtista = localStorage.getItem("token");
+
+    // Aceita cliente ou artista
+    const token = tokenCliente || tokenArtista;
 
     if (!token) {
-        setErroSeguir("Você precisa estar logado como cliente.");
+        setErroSeguir(
+            "Você precisa estar logado para seguir artistas."
+        );
         return;
     }
 
@@ -225,9 +237,12 @@ const handleSeguir = async () => {
             {/* Botões */}
             <div className={styles["botoes"]}>
 
-                <button className="portfolio">
-                    Ver Portfólio
-                </button>
+                <Link
+    to={`/perfil-artista/${id}`}
+    className={styles.portfolio}
+>
+    Ver Portfólio
+</Link>
 
            <button
     className="seguir"

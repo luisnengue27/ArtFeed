@@ -82,3 +82,8 @@
     backdrop-filter: blur(3px);
     z-index:-1;
 }
+.link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}

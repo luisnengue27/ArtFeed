@@ -1,0 +1,214 @@
+.portfolio {
+    width: 100%;
+    min-height: 100vh;
+    padding: 50px 70px;
+    box-sizing: border-box;
+}
+
+/* =========================
+   CABEÇALHO
+========================= */
+
+.cabecalho {
+    display: flex;
+    gap: 50px;
+    max-width: 1100px;
+    margin: 0 auto 70px;
+    align-items: center;
+}
+
+.fotoContainer {
+    width: 300px;
+    height: 380px;
+    flex-shrink: 0;
+}
+
+.foto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, .35);
+}
+
+.informacoes {
+    flex: 1;
+}
+
+.informacoes h1 {
+    margin: 0;
+    font-size: 42px;
+}
+
+.informacoes h2 {
+    margin: 5px 0 25px;
+    font-size: 20px;
+    opacity: .6;
+}
+
+.informacoes p {
+    font-size: 17px;
+    line-height: 1.5;
+}
+
+.descricao {
+    max-width: 650px;
+    margin-top: 25px;
+}
+
+/* =========================
+   BOTÃO CHAT
+========================= */
+
+.botaoChat {
+    margin-top: 20px;
+
+    padding: 13px 30px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #6c5ce7;
+    color: white;
+
+    font-size: 17px;
+
+    cursor: pointer;
+
+    transition: .3s;
+}
+
+.botaoChat:hover {
+    transform: translateY(-3px);
+    opacity: .9;
+}
+
+/* =========================
+   ARTES
+========================= */
+
+.artesSection {
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+.artesSection > h2 {
+    font-size: 32px;
+    margin-bottom: 30px;
+}
+
+.gradeArtes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+}
+
+.arte {
+    position: relative;
+    height: 350px;
+
+    overflow: hidden;
+
+    border-radius: 15px;
+
+    background: #222;
+
+    box-shadow: 0 10px 25px rgba(0, 0, 0, .3);
+}
+
+.arte img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: .4s;
+}
+
+.arte:hover img {
+    transform: scale(1.05);
+}
+
+.tituloArte {
+    position: absolute;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    padding: 15px;
+
+    color: white;
+
+    background: linear-gradient(
+        transparent,
+        rgba(0, 0, 0, .9)
+    );
+}
+
+.carregando,
+.erro,
+.semArtes {
+    text-align: center;
+    padding: 80px;
+    font-size: 20px;
+}
+.botaoVoltar {
+    background: #222;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.botaoVoltar:hover {
+    background: #333;
+}
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 1000px) {
+
+    .gradeArtes {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .cabecalho {
+        gap: 30px;
+    }
+
+}
+
+@media (max-width: 750px) {
+
+    .portfolio {
+        padding: 30px;
+    }
+
+    .cabecalho {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fotoContainer {
+        width: 100%;
+        height: 400px;
+    }
+
+    .gradeArtes {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+@media (max-width: 500px) {
+
+    .gradeArtes {
+        grid-template-columns: 1fr;
+    }
+
+}

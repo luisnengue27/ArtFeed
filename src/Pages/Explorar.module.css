@@ -1,11 +1,29 @@
+.Explorado {
+    width: 100%;
+    padding: 40px 60px;
+    box-sizing: border-box;
+}
+
 .containerCards {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 30px;
-
-    padding: 40px;
-    justify-items: center;
 }
-.organizar{
-    display: inline;
+/* pra telas pequenas */
+@media (max-width: 1200px) {
+    .containerCards {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .containerCards {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .containerCards {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }

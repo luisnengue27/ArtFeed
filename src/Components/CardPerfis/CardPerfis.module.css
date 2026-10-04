@@ -141,6 +141,11 @@
     font-weight: bold;
     cursor: pointer;
     transition: background 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 .portfolio:hover {
     background: #9d63f0;
