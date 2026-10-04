@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../services/api";
 
 const LoginCliente = () => {
 
@@ -17,7 +18,7 @@ const LoginCliente = () => {
 
         try {
 
-           const resposta = await fetch(
+           const resposta = await apiFetch(
     "/api/clientes/login",
                 {
                     method: "POST",

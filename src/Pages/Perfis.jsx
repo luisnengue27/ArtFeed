@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import CardPerfis from "../Components/CardPerfis/CardPerfis";
 import styles from "./Perfis.module.css";
+import { apiFetch } from "../services/api";
 
 const Perfis = () => {
 
@@ -13,7 +14,7 @@ const Perfis = () => {
 
             try {
 
-                const resposta = await fetch(
+                const resposta = await apiFetch(
                     "/api/artistas"
                 );
 

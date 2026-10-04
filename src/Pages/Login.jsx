@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../services/api";
 const Login = () => {
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
@@ -12,7 +13,7 @@ const Login = () => {
         setErro("");
         setMensagem("");
         try {
-           const resposta = await fetch(
+           const resposta = await apiFetch(
          "/api/artistas/login",
                 {
                     method: "POST",

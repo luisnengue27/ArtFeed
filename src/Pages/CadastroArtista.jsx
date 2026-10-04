@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../services/api";
 
 const CadastroArtista = () => {
     const navigate = useNavigate();
@@ -34,8 +35,8 @@ const CadastroArtista = () => {
 
         try {
 
-         const resposta = await fetch(
-      "/api/artistas/cadastro",
+         const resposta = await apiFetch(
+  "/api/artistas/cadastro",
                 {
                     method: "POST",
 

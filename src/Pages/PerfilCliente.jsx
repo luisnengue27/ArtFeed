@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../services/api";
 
 const PerfilCliente = () => {
     const navigate = useNavigate();
@@ -49,7 +50,7 @@ const cliente = clienteSalvo && clienteSalvo !== "undefined"
         }
 
         try {
-            const resposta = await fetch(
+            const resposta = await apiFetch(
                 "/api/clientes/perfil",
                 {
                     method: "PUT",

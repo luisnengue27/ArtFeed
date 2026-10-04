@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { apiFetch } from "../services/api";
 
 const PerfilArtista = () => {
 const [perfilExiste, setPerfilExiste] = useState(false);
@@ -37,7 +38,7 @@ const [formulario, setFormulario] = useState({
 
             try {
 
-                const resposta = await fetch(
+                const resposta = await apiFetch(
                     "/api/artistas/perfil",
                     {
                         method: "GET",
@@ -162,7 +163,7 @@ setFormulario({
 
         try {
 
-            const resposta = await fetch(
+            const resposta = await apiFetch(
                 "/api/artistas/perfil",
                 {
                     method: "POST",
@@ -233,7 +234,7 @@ try {
         dados.append("foto", foto);
     }
 
-    const resposta = await fetch(
+    const resposta = await apiFetch(
         "/api/artistas/perfil",
         {
             method: "PUT",
