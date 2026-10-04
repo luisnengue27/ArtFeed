@@ -297,7 +297,7 @@ router.post(
                         .split(",")
                         .map(tag => tag.trim()),
                     descricao: perfil.descricao,
-                    foto: `/uploads/${perfil.foto_perfil}`
+                    foto: `${process.env.API_URL || "http://localhost:3000"}/uploads/${perfil.foto_perfil}`
                 }
             });
 
@@ -373,8 +373,8 @@ router.get(
                     : [],
                 descricao: artista.descricao,
                 foto: artista.foto
-                    ? `/uploads/${artista.foto}`
-                    : null
+    ? `${process.env.API_URL || "http://localhost:3000"}/uploads/${artista.foto}`
+    : null
             });
 
         } catch (erro) {
@@ -414,8 +414,8 @@ router.get("/", async (req, res) => {
         const perfis = resultado.recordset.map(perfil => ({
             ...perfil,
             foto: perfil.foto
-                ? `/uploads/${perfil.foto}`
-                : null
+    ? `${process.env.API_URL || "http://localhost:3000"}/uploads/${perfil.foto}`
+    : null
         }));
 
         return res.status(200).json(perfis);

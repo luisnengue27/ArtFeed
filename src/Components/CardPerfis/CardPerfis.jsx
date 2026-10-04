@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "./CardPerfis.module.css";
-
+import { apiFetch } from "../../services/api";
 
 const CardPerfis = ({
     id,
@@ -28,7 +28,7 @@ const CardPerfis = ({
             // BUSCAR QUANTIDADE DE SEGUIDORES
             // ============================
 
-            const respostaSeguidores = await fetch(
+            const respostaSeguidores = await apiFetch(
                 `/api/artistas/${id}/seguidores`
             );
 
@@ -52,7 +52,7 @@ const CardPerfis = ({
                 return;
             }
 
-            const respostaSeguindo = await fetch(
+            const respostaSeguindo = await apiFetch(
                 `/api/artistas/${id}/seguindo`,
                 {
                     headers: {
@@ -94,7 +94,7 @@ const handleSeguir = async () => {
         // Se já está seguindo, deixa de seguir
         if (seguindo) {
 
-            const resposta = await fetch(
+            const resposta = await apiFetch(
                 `/api/artistas/${id}/seguir`,
                 {
                     method: "DELETE",
@@ -123,7 +123,7 @@ const handleSeguir = async () => {
         }
 
         // Se não está seguindo, segue
-        const resposta = await fetch(
+        const resposta = await apiFetch(
             `/api/artistas/${id}/seguir`,
             {
                 method: "POST",
