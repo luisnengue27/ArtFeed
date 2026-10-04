@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import styles from "./Home.module.css";
 import balao from "../assets/balao.png";
-import CarrosselArtes from "../Components/carrosselArtes/CarrosselArtes";
+import CarrosselArtes from "../Components/CarrosselArtes/CarrosselArtes";
 
 const Home = () => {
   return (
