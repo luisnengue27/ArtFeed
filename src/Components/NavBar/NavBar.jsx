@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../NavBar/NavBar.css";
 
 const Navbar = () => {
-    const [tipoUsuario, setTipoUsuario] = useState("");
+    const [tipoUsuario, setTipoUsuario] = useState(null);
     const [pesquisa, setPesquisa] = useState("");
 
     const navigate = useNavigate();
@@ -22,18 +21,13 @@ const Navbar = () => {
                 setTipoUsuario(null);
             }
         };
-const realizarPesquisa = (e) => {
-    if (e.key === "Enter") {
-        const termo = pesquisa.trim();
 
-        if (!termo) return;
-
-        navigate(`/perfis?busca=${encodeURIComponent(termo)}`);
-    }
-};
         verificarLogin();
 
-        window.addEventListener("loginStatusChanged", verificarLogin);
+        window.addEventListener(
+            "loginStatusChanged",
+            verificarLogin
+        );
 
         return () => {
             window.removeEventListener(
@@ -43,11 +37,29 @@ const realizarPesquisa = (e) => {
         };
     }, []);
 
+    // ============================
+    // PESQUISA
+    // ============================
+
+    const realizarPesquisa = (e) => {
+        if (e.key === "Enter") {
+            const termo = pesquisa.trim();
+
+            if (!termo) return;
+
+            navigate(
+                `/perfis?busca=${encodeURIComponent(termo)}`
+            );
+        }
+    };
+
     return (
         <nav className="navbar">
+
             <h2 className="logo">ArtFeed</h2>
 
             <ul className="nav-links">
+
                 <li>
                     <Link to="/">Início</Link>
                 </li>
@@ -65,22 +77,28 @@ const realizarPesquisa = (e) => {
                 </li>
 
                 <li>
-                    <Link to="/FaleConosco">Fale Conosco</Link>
+                    <Link to="/FaleConosco">
+                        Fale Conosco
+                    </Link>
                 </li>
+
             </ul>
 
             <div className="nav-actions">
 
-               <input
-    type="text"
-    placeholder="Pesquisar..."
-    className="search"
-    value={pesquisa}
-    onChange={(e) => setPesquisa(e.target.value)}
-    onKeyDown={realizarPesquisa}
-/>
+                <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    className="search"
+                    value={pesquisa}
+                    onChange={(e) =>
+                        setPesquisa(e.target.value)
+                    }
+                    onKeyDown={realizarPesquisa}
+                />
 
                 {tipoUsuario ? (
+
                     <Link
                         to={
                             tipoUsuario === "cliente"
@@ -91,8 +109,11 @@ const realizarPesquisa = (e) => {
                     >
                         Meu Perfil
                     </Link>
+
                 ) : (
+
                     <>
+
                         <Link
                             to="/cadastro"
                             className="cadastro-btn"
@@ -106,10 +127,13 @@ const realizarPesquisa = (e) => {
                         >
                             Login
                         </Link>
+
                     </>
+
                 )}
 
             </div>
+
         </nav>
     );
 };
