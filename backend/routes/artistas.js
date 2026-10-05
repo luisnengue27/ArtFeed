@@ -2,34 +2,42 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
-const path = require("path");
 const verificarToken = require("../middleware/authMiddleware");
 const { sql, poolPromise } = require("../db");
-
+const { v2: cloudinary } = require("cloudinary");
 
 const router = express.Router();
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+const uploadParaCloudinary = (buffer, nomeArquivo) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: "artfeed",
+                public_id: nomeArquivo,
+                resource_type: "image"
+            },
+            (error, resultado) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(resultado);
+                }
+            }
+        );
 
+        stream.end(buffer);
+    });
+};
 // ============================
 // CONFIGURAÇÃO DO UPLOAD
 // ============================
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/");
-    },
-
-    filename: (req, file, cb) => {
-        const extensao = path.extname(file.originalname);
-
-        const nomeArquivo =
-            `artista-${Date.now()}${extensao}`;
-
-        cb(null, nomeArquivo);
-    }
-});
-
 const upload = multer({
-    storage: storage
+    storage: multer.memoryStorage()
 });
 // ============================
 // CADASTRO
@@ -249,7 +257,12 @@ router.post(
                     erro: "Este artista já possui um perfil."
                 });
             }
+const nomeArquivo = `perfil-${Date.now()}`;
 
+const fotoCloudinary = await uploadParaCloudinary(
+    req.file.buffer,
+    nomeArquivo
+);
             const resultado = await pool.request()
                 .input("artistaId", sql.Int, artistaId)
                 .input("nome", sql.NVarChar(100), nome)
@@ -258,7 +271,7 @@ router.post(
                 .input("profissao", sql.NVarChar(100), profissao)
                 .input("tags", sql.NVarChar(500), tags)
                 .input("descricao", sql.NVarChar(sql.MAX), descricao)
-                .input("foto", sql.NVarChar(255), req.file.filename)
+             .input("foto", sql.NVarChar(500), fotoCloudinary.secure_url)
                 .query(`
                     INSERT INTO PerfilArtista (
                         artista_id,
@@ -297,7 +310,7 @@ router.post(
                         .split(",")
                         .map(tag => tag.trim()),
                     descricao: perfil.descricao,
-                    foto: `${process.env.API_URL || "http://localhost:3000"}/uploads/${perfil.foto_perfil}`
+                   foto: perfil.foto_perfil
                 }
             });
 
@@ -372,9 +385,7 @@ router.get(
                     ? artista.tags.split(",").map(tag => tag.trim())
                     : [],
                 descricao: artista.descricao,
-                foto: artista.foto
-    ? `${process.env.API_URL || "http://localhost:3000"}/uploads/${artista.foto}`
-    : null
+           foto: artista.foto || null
             });
 
         } catch (erro) {
@@ -412,11 +423,9 @@ router.get("/", async (req, res) => {
         `);
 
         const perfis = resultado.recordset.map(perfil => ({
-            ...perfil,
-            foto: perfil.foto
-    ? `${process.env.API_URL || "http://localhost:3000"}/uploads/${perfil.foto}`
-    : null
-        }));
+    ...perfil,
+    foto: perfil.foto || null
+}));
 
         return res.status(200).json(perfis);
 
@@ -425,6 +434,57 @@ router.get("/", async (req, res) => {
 
         return res.status(500).json({
             erro: "Erro ao buscar os perfis dos artistas."
+        });
+    }
+});
+// ===============================
+// PESQUISAR ARTISTAS
+// ===============================
+
+router.get("/buscar", async (req, res) => {
+    try {
+        const { termo } = req.query;
+
+        if (!termo || !termo.trim()) {
+            return res.status(400).json({
+                erro: "Digite algo para pesquisar."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .input("termo", sql.NVarChar(100), `%${termo.trim()}%`)
+            .query(`
+                SELECT
+                    a.id,
+                    a.username,
+                    p.nome,
+                    p.preco,
+                    p.cidade,
+                    p.profissao,
+                    p.tags,
+                    p.descricao,
+                    p.foto_perfil AS foto
+                FROM Artistas a
+                INNER JOIN PerfilArtista p
+                    ON a.id = p.artista_id
+                WHERE
+                    a.username LIKE @termo
+                    OR p.nome LIKE @termo
+                    OR p.profissao LIKE @termo
+                    OR p.cidade LIKE @termo
+                    OR p.tags LIKE @termo
+                ORDER BY p.nome
+            `);
+
+        return res.status(200).json(resultado.recordset);
+
+    } catch (erro) {
+        console.error("❌ Erro ao pesquisar artistas:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao pesquisar artistas."
         });
     }
 });
@@ -466,19 +526,7 @@ router.delete("/artes/:arteId", verificarToken, async (req, res) => {
                 WHERE id = @arteId
             `);
 
-        const fs = require("fs");
-        const path = require("path");
-
-        const caminhoImagem = path.join(
-            __dirname,
-            "..",
-            "uploads",
-            imagem
-        );
-
-        if (fs.existsSync(caminhoImagem)) {
-            fs.unlinkSync(caminhoImagem);
-        }
+       
 
         return res.status(200).json({
             mensagem: "Arte excluída com sucesso."
@@ -1047,10 +1095,17 @@ let queryPerfil = `
 `;
 
 if (req.file) {
+    const nomeArquivo = `perfil-${artistaId}-${Date.now()}`;
+
+    const fotoCloudinary = await uploadParaCloudinary(
+        req.file.buffer,
+        nomeArquivo
+    );
+
     requestPerfil.input(
         "foto",
-        sql.NVarChar(255),
-        req.file.filename
+        sql.NVarChar(500),
+        fotoCloudinary.secure_url
     );
 
     queryPerfil += `,
@@ -1117,11 +1172,16 @@ router.post(
                     erro: "Artista não encontrado"
                 });
             }
+const nomeArquivo = `artista-${Date.now()}`;
 
+const imagemCloudinary = await uploadParaCloudinary(
+    req.file.buffer,
+    nomeArquivo
+);
             const resultado = await pool.request()
                 .input("artista_id", sql.Int, artistaId)
                 .input("titulo", sql.NVarChar(150), titulo || null)
-                .input("imagem", sql.NVarChar(500), req.file.filename)
+              .input("imagem", sql.NVarChar(500), imagemCloudinary.secure_url)
                 .query(`
                     INSERT INTO Artes
                         (artista_id, titulo, imagem)
@@ -1173,13 +1233,10 @@ router.get("/minhas-artes", verificarToken, async (req, res) => {
                 ORDER BY data_publicacao DESC
             `);
 
-        const API_URL =
-            process.env.API_URL || "http://localhost:3000";
-
-        const artes = resultado.recordset.map(arte => ({
-            ...arte,
-            imagem: `${API_URL}/uploads/${arte.imagem}`
-        }));
+      const artes = resultado.recordset.map(arte => ({
+    ...arte,
+    imagem: arte.imagem
+}));
 
         return res.status(200).json(artes);
 
@@ -1210,13 +1267,10 @@ router.get("/artes", async (req, res) => {
             ORDER BY Artes.data_publicacao DESC
         `);
 
-        const API_URL =
-            process.env.API_URL || "http://localhost:3000";
-
         const artes = resultado.recordset.map(arte => ({
-            ...arte,
-            imagem: `${API_URL}/uploads/${arte.imagem}`
-        }));
+    ...arte,
+    imagem: arte.imagem
+}));
 
         res.json(artes);
 
@@ -1311,20 +1365,16 @@ router.get(
                 ORDER BY data_publicacao DESC
             `);
 
-        const API_URL =
-            process.env.API_URL || "http://localhost:3000";
+       // URL da foto de perfil
+if (artista.foto_perfil) {
+    artista.foto_perfil = artista.foto_perfil;
+}
 
-        // URL da foto de perfil
-        if (artista.foto_perfil) {
-            artista.foto_perfil =
-                `${API_URL}/uploads/${artista.foto_perfil}`;
-        }
-
-        // URLs das artes
-        const artes = artesResult.recordset.map(arte => ({
-            ...arte,
-            imagem: `${API_URL}/uploads/${arte.imagem}`
-        }));
+// URLs das artes
+const artes = artesResult.recordset.map(arte => ({
+    ...arte,
+    imagem: arte.imagem
+}));
 
         return res.json({
             artista,
@@ -1362,13 +1412,10 @@ router.get("/artes-carrossel", async (req, res) => {
                     ON Artes.artista_id = PerfilArtista.artista_id
             `);
 
-        const API_URL =
-            process.env.API_URL || "http://localhost:3000";
-
-        const artes = resultado.recordset.map(arte => ({
-            ...arte,
-            imagem: `${API_URL}/uploads/${arte.imagem}`
-        }));
+      const artes = resultado.recordset.map(arte => ({
+    ...arte,
+    imagem: arte.imagem
+}));
 
         return res.json(artes);
 
