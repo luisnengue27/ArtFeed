@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import CardPerfis from "../Components/CardPerfis/CardPerfis";
 import styles from "./Perfis.module.css";
 import { apiFetch } from "../services/api";
@@ -8,20 +9,37 @@ const Perfis = () => {
     const [perfis, setPerfis] = useState([]);
     const [erro, setErro] = useState("");
 
+    const [searchParams] = useSearchParams();
+
+    const termoBusca = searchParams.get("busca");
+
     useEffect(() => {
 
         const buscarPerfis = async () => {
 
             try {
 
-                const resposta = await apiFetch(
-                    "/api/artistas"
-                );
+                setErro("");
+
+                let url = "/api/artistas";
+
+                // Se houver uma pesquisa
+                if (termoBusca && termoBusca.trim()) {
+                    url = `/api/artistas/buscar?termo=${encodeURIComponent(
+                        termoBusca
+                    )}`;
+                }
+
+                const resposta = await apiFetch(url);
 
                 const dados = await resposta.json();
 
                 if (!resposta.ok) {
-                    setErro(dados.erro);
+                    setErro(
+                        dados.erro ||
+                        "Não foi possível realizar a pesquisa."
+                    );
+                    setPerfis([]);
                     return;
                 }
 
@@ -34,12 +52,14 @@ const Perfis = () => {
                 setErro(
                     "Não foi possível conectar com o servidor."
                 );
+
+                setPerfis([]);
             }
         };
 
         buscarPerfis();
 
-    }, []);
+    }, [termoBusca]);
 
     return (
         <div className={styles.home}>
@@ -68,6 +88,15 @@ const Perfis = () => {
 
             {erro && (
                 <p>{erro}</p>
+            )}
+
+            {!erro && perfis.length === 0 && (
+                <p>
+                    {termoBusca
+                        ? `Nenhum artista encontrado para "${termoBusca}".`
+                        : "Nenhum artista encontrado."
+                    }
+                </p>
             )}
 
         </div>

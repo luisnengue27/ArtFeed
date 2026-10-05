@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import "../NavBar/NavBar.css";
 
 const Navbar = () => {
-    const [tipoUsuario, setTipoUsuario] = useState(null);
+    const [tipoUsuario, setTipoUsuario] = useState("");
+    const [pesquisa, setPesquisa] = useState("");
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const verificarLogin = () => {
@@ -18,7 +22,15 @@ const Navbar = () => {
                 setTipoUsuario(null);
             }
         };
+const realizarPesquisa = (e) => {
+    if (e.key === "Enter") {
+        const termo = pesquisa.trim();
 
+        if (!termo) return;
+
+        navigate(`/perfis?busca=${encodeURIComponent(termo)}`);
+    }
+};
         verificarLogin();
 
         window.addEventListener("loginStatusChanged", verificarLogin);
@@ -59,11 +71,14 @@ const Navbar = () => {
 
             <div className="nav-actions">
 
-                <input
-                    type="text"
-                    placeholder="Pesquisar..."
-                    className="search"
-                />
+               <input
+    type="text"
+    placeholder="Pesquisar..."
+    className="search"
+    value={pesquisa}
+    onChange={(e) => setPesquisa(e.target.value)}
+    onKeyDown={realizarPesquisa}
+/>
 
                 {tipoUsuario ? (
                     <Link
