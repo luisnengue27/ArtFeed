@@ -30,61 +30,93 @@ const Chat = () => {
     };
 
 
-    useEffect(() => {
+    
+useEffect(() => {
+    let ativo = true;
+    let timeoutId;
 
-        const buscarMensagens = async () => {
+    const buscarMensagens = async () => {
+        try {
+            const token = pegarToken();
 
-            try {
+            if (!token) {
+                navigate("/login");
+                return;
+            }
 
-                const token = pegarToken();
-
-                if (!token) {
-                    navigate("/login");
-                    return;
-                }
-
-
-                const resposta = await fetch(
-                    `${API_URL}/api/chat/conversa/${conversaId}/mensagens`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
+            const resposta = await fetch(
+                `${API_URL}/api/chat/conversa/${conversaId}/mensagens`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
                     }
-                );
-
-
-                const dados = await resposta.json();
-
-
-                if (!resposta.ok) {
-
-                    throw new Error(
-                        dados.erro ||
-                        "Erro ao buscar mensagens"
-                    );
                 }
+            );
 
+            const dados = await resposta.json();
 
-                setMensagens(dados);
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.erro || "Erro ao buscar mensagens"
+                );
+            }
 
-            } catch (erro) {
+            if (!ativo) return;
 
+            // Atualiza as mensagens sem duplicar as existentes.
+            setMensagens((atuais) => {
+                const mensagensUnicas = new Map();
+
+                atuais.forEach((mensagem) => {
+                    mensagensUnicas.set(
+                        String(mensagem.id),
+                        mensagem
+                    );
+                });
+
+                dados.forEach((mensagem) => {
+                    mensagensUnicas.set(
+                        String(mensagem.id),
+                        mensagem
+                    );
+                });
+
+                return Array.from(mensagensUnicas.values())
+                    .sort(
+                        (a, b) =>
+                            new Date(a.data_envio).getTime() -
+                            new Date(b.data_envio).getTime()
+                    );
+            });
+
+        } catch (erro) {
+            if (ativo) {
                 console.error(
                     "Erro ao buscar mensagens:",
                     erro
                 );
-
-            } finally {
-
-                setCarregando(false);
             }
-        };
+        } finally {
+            if (ativo) {
+                setCarregando(false);
 
+                // Consulta novamente após 2 segundos.
+                timeoutId = setTimeout(
+                    buscarMensagens,
+                    2000
+                );
+            }
+        }
+    };
 
-        buscarMensagens();
+    setCarregando(true);
+    buscarMensagens();
 
-    }, [conversaId, navigate]);
+    return () => {
+        ativo = false;
+        clearTimeout(timeoutId);
+    };
+}, [conversaId, navigate]);
 
 
     const enviarMensagem = async (e) => {
