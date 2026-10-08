@@ -1,112 +1,47 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import styles from "./Chat.module.css";
 
 const API_URL =
     import.meta.env.VITE_API_URL ||
     "https://artfeed-backend.onrender.com";
-const obterDadosToken = (token) => {
-    try {
-        const payload = JSON.parse(
-            atob(token.split(".")[1])
-        );
 
-        return payload;
-    } catch (erro) {
-        console.error("Erro ao ler token:", erro);
-        return null;
-    }
-};
+
 const Chat = () => {
-    const { artistaId } = useParams();
+
+    const { conversaId } = useParams();
     const navigate = useNavigate();
 
-    const [conversaId, setConversaId] = useState(null);
     const [mensagens, setMensagens] = useState([]);
     const [texto, setTexto] = useState("");
+
     const [carregando, setCarregando] = useState(true);
     const [enviando, setEnviando] = useState(false);
 
-    // Pega o token do usuário logado
+
     const pegarToken = () => {
+
         return (
             localStorage.getItem("tokenCliente") ||
             localStorage.getItem("token")
         );
     };
 
-    // Cria ou recupera a conversa
+
     useEffect(() => {
-        const iniciarChat = async () => {
+
+        const buscarMensagens = async () => {
+
             try {
+
                 const token = pegarToken();
-                console.log("artistaId da URL:", artistaId);
-                console.log("token:", token);
-const dadosToken = obterDadosToken(token);
-console.log("dados do token:", dadosToken);
-if (!dadosToken) {
-    navigate("/login");
-    return;
-}
+
                 if (!token) {
                     navigate("/login");
                     return;
                 }
 
-                const resposta = await fetch(
-                    `${API_URL}/api/chat/conversa`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
-                        },
-                      body: JSON.stringify(
-    dadosToken.tipo === "artista"
-        ? {
-            artista_id: Number(artistaId)
-        }
-        : {
-            artista_id: Number(artistaId)
-        }
-)
-                    }
-                );
-
-                const dados = await resposta.json();
-
-                if (!resposta.ok) {
-                    throw new Error(
-                        dados.erro || "Erro ao iniciar conversa"
-                    );
-                }
-
-                setConversaId(dados.id);
-
-            } catch (erro) {
-                console.error(
-                    "Erro ao iniciar chat:",
-                    erro
-                );
-            } finally {
-                setCarregando(false);
-            }
-        };
-
-        iniciarChat();
-    }, [artistaId, navigate]);
-
-
-    // Busca as mensagens quando temos a conversa
-    useEffect(() => {
-        if (!conversaId) {
-            return;
-        }
-
-        const buscarMensagens = async () => {
-            try {
-                const token = pegarToken();
 
                 const resposta = await fetch(
                     `${API_URL}/api/chat/conversa/${conversaId}/mensagens`,
@@ -117,83 +52,114 @@ if (!dadosToken) {
                     }
                 );
 
+
                 const dados = await resposta.json();
 
+
                 if (!resposta.ok) {
+
                     throw new Error(
-                        dados.erro || "Erro ao buscar mensagens"
+                        dados.erro ||
+                        "Erro ao buscar mensagens"
                     );
                 }
+
 
                 setMensagens(dados);
 
             } catch (erro) {
+
                 console.error(
                     "Erro ao buscar mensagens:",
                     erro
                 );
+
+            } finally {
+
+                setCarregando(false);
             }
         };
 
+
         buscarMensagens();
-    }, [conversaId]);
+
+    }, [conversaId, navigate]);
 
 
-    // Enviar mensagem
     const enviarMensagem = async (e) => {
+
         e.preventDefault();
 
-        if (!texto.trim() || !conversaId || enviando) {
+        if (
+            !texto.trim() ||
+            !conversaId ||
+            enviando
+        ) {
             return;
         }
 
+
         try {
+
             setEnviando(true);
 
             const token = pegarToken();
+
 
             const resposta = await fetch(
                 `${API_URL}/api/chat/conversa/${conversaId}/mensagens`,
                 {
                     method: "POST",
+
                     headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${token}`
                     },
+
                     body: JSON.stringify({
                         texto: texto.trim()
                     })
                 }
             );
 
+
             const mensagem = await resposta.json();
 
+
             if (!resposta.ok) {
+
                 throw new Error(
-                    mensagem.erro || "Erro ao enviar mensagem"
+                    mensagem.erro ||
+                    "Erro ao enviar mensagem"
                 );
             }
 
-            // Adiciona a mensagem imediatamente na tela
+
             setMensagens((mensagensAtuais) => [
                 ...mensagensAtuais,
                 mensagem
             ]);
 
+
             setTexto("");
 
+
         } catch (erro) {
+
             console.error(
                 "Erro ao enviar mensagem:",
                 erro
             );
+
         } finally {
+
             setEnviando(false);
         }
     };
 
 
     if (carregando) {
+
         return (
             <main className={styles.chat}>
                 <p>Carregando chat...</p>
@@ -212,13 +178,13 @@ if (!dadosToken) {
                 ← Voltar
             </button>
 
+
             <section className={styles.container}>
 
                 <header className={styles.header}>
+
                     <h1>💬 Chat</h1>
-                    <p>
-                        Conversa com o artista #{artistaId}
-                    </p>
+
                 </header>
 
 
@@ -238,21 +204,25 @@ if (!dadosToken) {
                                 key={mensagem.id}
                                 className={styles.mensagem}
                             >
+
                                 <strong>
                                     {mensagem.remetente_tipo === "artista"
                                         ? "Artista"
-                                        : "Você"}
+                                        : "Cliente"}
                                 </strong>
+
 
                                 <p>
                                     {mensagem.texto}
                                 </p>
+
 
                                 <small>
                                     {new Date(
                                         mensagem.data_envio
                                     ).toLocaleString("pt-BR")}
                                 </small>
+
                             </div>
 
                         ))
@@ -274,12 +244,16 @@ if (!dadosToken) {
                             setTexto(e.target.value)
                         }
                         placeholder="Digite uma mensagem..."
-                        disabled={!conversaId || enviando}
+                        disabled={enviando}
                     />
+
 
                     <button
                         type="submit"
-                        disabled={!conversaId || enviando}
+                        disabled={
+                            enviando ||
+                            !texto.trim()
+                        }
                     >
                         {enviando ? "..." : "➤"}
                     </button>
@@ -291,5 +265,6 @@ if (!dadosToken) {
         </main>
     );
 };
+
 
 export default Chat;

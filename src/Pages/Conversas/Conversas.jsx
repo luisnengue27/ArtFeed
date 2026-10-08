@@ -108,7 +108,7 @@ const Conversas = () => {
 
         if (artistaId) {
 
-            navigate(`/chat/${artistaId}`);
+           navigate(`/chat/conversa/${conversa.conversa_id}`);
         }
     };
 

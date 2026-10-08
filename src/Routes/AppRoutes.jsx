@@ -105,8 +105,8 @@ const AppRoutes = () => {
     element={<Chat />}
 />
 <Route
-    path="/conversas"
-    element={<Conversas />}
+    path="/chat/conversa/:conversaId"
+    element={<Chat />}
 />
 
                 </Route>
