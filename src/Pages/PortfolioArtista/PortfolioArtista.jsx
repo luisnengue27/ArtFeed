@@ -155,16 +155,12 @@ const resposta = await fetch(
                     </p>
 
 
-                    <button
-                        className={styles.botaoChat}
-                        onClick={() => {
-                            console.log(
-                                "Chat ainda será implementado"
-                            );
-                        }}
-                    >
-                        💬 Chat
-                    </button>
+                  <button
+    className={styles.botaoChat}
+    onClick={() => navigate(`/chat/${id}`)}
+>
+    💬 Chat
+</button>
 
                 </div>
 

@@ -1,0 +1,55 @@
+.chat {
+    min-height: 100vh;
+    padding: 30px;
+}
+
+.voltar {
+    margin-bottom: 20px;
+    padding: 8px 15px;
+    cursor: pointer;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.header {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.header h1 {
+    margin: 0;
+}
+
+.header p {
+    margin-bottom: 0;
+    color: #666;
+}
+
+.mensagens {
+    height: 500px;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.inputArea {
+    display: flex;
+    padding: 15px;
+    gap: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.inputArea input {
+    flex: 1;
+    padding: 12px;
+}
+
+.inputArea button {
+    padding: 0 20px;
+    cursor: pointer;
+}

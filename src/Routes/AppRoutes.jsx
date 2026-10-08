@@ -32,6 +32,9 @@ import GerenciarPortfolio from "../Pages/GerenciarPortfolio";
 
 import PortfolioArtista from "../Pages/PortfolioArtista/PortfolioArtista";
 
+import Chat from "../Pages/Chat";
+
+import Conversas from "../Pages/Conversas/Conversas";
 
 const AppRoutes = () => {
     return (
@@ -91,10 +94,21 @@ const AppRoutes = () => {
                         path="/perfil-artista/:id"
                         element={<PortfolioArtista />}
                     />
+
 <Route
     path="/gerenciar-portfolio"
     element={<GerenciarPortfolio />}
 />
+
+<Route
+    path="/chat/:artistaId"
+    element={<Chat />}
+/>
+<Route
+    path="/conversas"
+    element={<Conversas />}
+/>
+
                 </Route>
 
             </Routes>

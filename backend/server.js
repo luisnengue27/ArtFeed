@@ -7,22 +7,28 @@ const testeRoutes = require("./routes/teste");
 const { poolPromise } = require("./db");
 const artistasRoutes = require("./routes/artistas");
 const clientesRoutes = require("./routes/clientes");
+const chatRoutes = require("./routes/chat");
 
 
-app.use("/api/teste", testeRoutes);
+// CORS precisa vir antes das rotas
 app.use(cors());
+
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
+
+
+// Rotas
+app.use("/api/teste", testeRoutes);
 app.use("/api/artistas", artistasRoutes);
 app.use("/api/clientes", clientesRoutes);
-app.get("/", (req, res) => {
-    res.json({
-        mensagem: "API do ArtFeed funcionando!"
-    });
-});
+app.use("/api/chat", chatRoutes);
 
-const PORT = 3000;
 
-app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+// Arquivos estáticos
+app.use("/uploads", express.static("uploads"));
+
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
