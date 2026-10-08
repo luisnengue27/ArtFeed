@@ -87,31 +87,9 @@ const Conversas = () => {
     }, [navigate]);
 
 
-    const abrirConversa = (conversa) => {
-
-        let artistaId;
-
-
-        // Cliente conversando com artista
-        if (conversa.artista_id) {
-
-            artistaId = conversa.artista_id;
-
-        }
-
-        // Artista conversando com outro artista
-        else if (conversa.outro_artista_id) {
-
-            artistaId = conversa.outro_artista_id;
-        }
-
-
-        if (artistaId) {
-
-           navigate(`/chat/conversa/${conversa.conversa_id}`);
-        }
-    };
-
+   const abrirConversa = (conversa) => {
+    navigate(`/chat/conversa/${conversa.conversa_id}`);
+};
 
     if (carregando) {
 

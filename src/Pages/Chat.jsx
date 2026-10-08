@@ -11,6 +11,7 @@ const API_URL =
 const Chat = () => {
 
     const { conversaId } = useParams();
+    console.log("ID DA CONVERSA:", conversaId);
     const navigate = useNavigate();
 
     const [mensagens, setMensagens] = useState([]);

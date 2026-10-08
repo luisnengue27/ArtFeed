@@ -32,9 +32,9 @@ import GerenciarPortfolio from "../Pages/GerenciarPortfolio";
 
 import PortfolioArtista from "../Pages/PortfolioArtista/PortfolioArtista";
 
-import Chat from "../Pages/Chat";
-
 import Conversas from "../Pages/Conversas/Conversas";
+
+import Chat from "../Pages/Chat";
 
 const AppRoutes = () => {
     return (
@@ -101,9 +101,10 @@ const AppRoutes = () => {
 />
 
 <Route
-    path="/chat/:artistaId"
-    element={<Chat />}
+    path="/conversas"
+    element={<Conversas />}
 />
+
 <Route
     path="/chat/conversa/:conversaId"
     element={<Chat />}
