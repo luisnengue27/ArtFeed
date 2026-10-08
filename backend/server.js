@@ -1,3 +1,14 @@
+const path = require("path");
+
+require("dotenv").config({
+    path: path.join(__dirname, ".env")
+});
+
+console.log("Cloudinary carregado:", {
+    cloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: !!process.env.CLOUDINARY_API_KEY,
+    apiSecret: !!process.env.CLOUDINARY_API_SECRET
+});
 const express = require("express");
 const cors = require("cors");
 

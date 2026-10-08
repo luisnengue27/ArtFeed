@@ -4,6 +4,48 @@ const router = express.Router();
 const { poolPromise } = require("../db");
 const verificarToken = require("../middleware/authMiddleware");
 
+const multer = require("multer");
+const { v2: cloudinary } = require("cloudinary");
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024
+    },
+    fileFilter: (req, file, callback) => {
+        if (file.mimetype?.startsWith("image/")) {
+            callback(null, true);
+        } else {
+            callback(new Error("Envie apenas arquivos de imagem."));
+        }
+    }
+});
+
+const uploadParaCloudinary = (buffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: "artfeed/chat",
+                resource_type: "image"
+            },
+            (error, resultado) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(resultado);
+                }
+            }
+        );
+
+        stream.end(buffer);
+    });
+};
 
 // ==========================================
 // CRIAR OU ENCONTRAR UMA CONVERSA
@@ -574,4 +616,101 @@ if (tipo === "artista") {
         });
     }
 });
+
+router.post(
+    "/conversa/:id/imagem",
+    verificarToken,
+    upload.single("imagem"),
+    async (req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({
+                    erro: "Selecione uma imagem válida."
+                });
+            }
+
+            const conversaId = req.params.id;
+            const usuarioId = req.usuario.id;
+            const tipo = req.usuario.tipo;
+
+            const pool = await poolPromise;
+
+            const conversa = await pool.request()
+                .input("id", conversaId)
+                .query(`
+                    SELECT id, artista_id, cliente_id, artista_destino_id
+                    FROM Conversas
+                    WHERE id = @id
+                `);
+
+            if (conversa.recordset.length === 0) {
+                return res.status(404).json({
+                    erro: "Conversa não encontrada."
+                });
+            }
+
+            const dados = conversa.recordset[0];
+
+            const autorizado =
+                (
+                    tipo === "artista" &&
+                    (
+                        dados.artista_id === usuarioId ||
+                        dados.artista_destino_id === usuarioId
+                    )
+                ) ||
+                (
+                    tipo === "cliente" &&
+                    dados.cliente_id === usuarioId
+                );
+
+            if (!autorizado) {
+                return res.status(403).json({
+                    erro: "Você não pertence a esta conversa."
+                });
+            }
+
+            const resultado = await uploadParaCloudinary(
+                req.file.buffer
+            );
+
+            const mensagem = await pool.request()
+                .input("conversa_id", conversaId)
+                .input("remetente_tipo", tipo)
+                .input("remetente_id", usuarioId)
+                .input("imagem", resultado.secure_url)
+                .query(`
+                    INSERT INTO Mensagens (
+                        conversa_id,
+                        remetente_tipo,
+                        remetente_id,
+                        imagem
+                    )
+                    OUTPUT
+                        INSERTED.id,
+                        INSERTED.conversa_id,
+                        INSERTED.remetente_tipo,
+                        INSERTED.remetente_id,
+                        INSERTED.texto,
+                        INSERTED.imagem,
+                        INSERTED.data_envio
+                    VALUES (
+                        @conversa_id,
+                        @remetente_tipo,
+                        @remetente_id,
+                        @imagem
+                    )
+                `);
+
+            return res.status(201).json(mensagem.recordset[0]);
+
+        } catch (error) {
+            console.error("Erro ao enviar imagem:", error);
+
+            return res.status(500).json({
+                erro: "Erro ao enviar imagem."
+            });
+        }
+    }
+);
 module.exports = router;
