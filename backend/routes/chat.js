@@ -490,57 +490,74 @@ router.get("/conversas", verificarToken, async (req, res) => {
         // ARTISTA
         // ==========================================
 
-        if (tipo === "artista") {
+    // ==========================================
+// ARTISTA
+// ==========================================
 
-            resultado = await pool.request()
-                .input("artista_id", usuarioId)
-                .query(`
-                    SELECT
-                        c.id AS conversa_id,
+if (tipo === "artista") {
 
-                        CASE
-                            WHEN c.artista_id = @artista_id
-                                THEN c.artista_destino_id
-                            ELSE c.artista_id
-                        END AS outro_artista_id,
+    resultado = await pool.request()
+        .input("artista_id", usuarioId)
+        .query(`
+            SELECT
+                c.id AS conversa_id,
 
-                        CASE
-                            WHEN c.artista_id = @artista_id
-                                THEN destino.username
-                            ELSE origem.username
-                        END AS outro_username,
+                CASE
+                    WHEN c.cliente_id IS NOT NULL
+                        THEN c.cliente_id
+                    WHEN c.artista_id = @artista_id
+                        THEN c.artista_destino_id
+                    ELSE c.artista_id
+                END AS outro_usuario_id,
 
-                        m.texto AS ultima_mensagem,
-                        m.data_envio AS ultima_mensagem_data
+                CASE
+                    WHEN c.cliente_id IS NOT NULL
+                        THEN cliente.username
+                    WHEN c.artista_id = @artista_id
+                        THEN destino.username
+                    ELSE origem.username
+                END AS outro_username,
 
-                    FROM Conversas c
+                CASE
+                    WHEN c.cliente_id IS NOT NULL
+                        THEN 'cliente'
+                    ELSE 'artista'
+                END AS outro_tipo,
 
-                    LEFT JOIN Artistas origem
-                        ON origem.id = c.artista_id
+                m.texto AS ultima_mensagem,
+                m.data_envio AS ultima_mensagem_data
 
-                    LEFT JOIN Artistas destino
-                        ON destino.id = c.artista_destino_id
+            FROM Conversas c
 
-                    OUTER APPLY (
-                        SELECT TOP 1
-                            texto,
-                            data_envio
-                        FROM Mensagens
-                        WHERE conversa_id = c.id
-                        ORDER BY data_envio DESC
-                    ) m
+            LEFT JOIN Artistas origem
+                ON origem.id = c.artista_id
 
-                    WHERE
-                        c.artista_id = @artista_id
-                        OR c.artista_destino_id = @artista_id
+            LEFT JOIN Artistas destino
+                ON destino.id = c.artista_destino_id
 
-                    ORDER BY
-                        m.data_envio DESC,
-                        c.data_criacao DESC
-                `);
+            LEFT JOIN Clientes cliente
+                ON cliente.id = c.cliente_id
 
-            return res.json(resultado.recordset);
-        }
+            OUTER APPLY (
+                SELECT TOP 1
+                    texto,
+                    data_envio
+                FROM Mensagens
+                WHERE conversa_id = c.id
+                ORDER BY data_envio DESC
+            ) m
+
+            WHERE
+                c.artista_id = @artista_id
+                OR c.artista_destino_id = @artista_id
+
+            ORDER BY
+                m.data_envio DESC,
+                c.data_criacao DESC
+        `);
+
+    return res.json(resultado.recordset);
+}
 
 
         return res.status(403).json({

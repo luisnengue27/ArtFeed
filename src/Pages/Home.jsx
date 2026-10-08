@@ -15,13 +15,13 @@ const Home = () => {
 
     </div><div>
 
-        <Link to="/Login">
-
-          <img
-            src={balao}
-            alt="Explorar"
-            className={styles.Balao} />
-        </Link>
+        <Link to="/conversas">
+    <img
+        src={balao}
+        alt="Conversas"
+        className={styles.Balao}
+    />
+</Link>
 
      <div className={styles.fix}>
         <CarrosselArtes />

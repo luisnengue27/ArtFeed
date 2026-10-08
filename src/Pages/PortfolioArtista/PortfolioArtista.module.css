@@ -167,6 +167,14 @@
 .botaoVoltar:hover {
     background: #333;
 }
+.botaoGerenciar {
+    margin-top: 15px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+}
 /* =========================
    RESPONSIVO
 ========================= */

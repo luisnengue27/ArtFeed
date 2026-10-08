@@ -36,6 +36,8 @@ import Conversas from "../Pages/Conversas/Conversas";
 
 import Chat from "../Pages/Chat";
 
+
+
 const AppRoutes = () => {
     return (
         <BrowserRouter>

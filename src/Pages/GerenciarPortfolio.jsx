@@ -180,7 +180,22 @@ function GerenciarPortfolio() {
                 margin: "0 auto"
             }}
         >
-
+{/* VOLTAR */}
+<button
+    type="button"
+    onClick={() => navigate("/perfil-artista")}
+    style={{
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        fontSize: "16px",
+        cursor: "pointer",
+        marginBottom: "25px",
+        color: "#ffffff"
+    }}
+>
+    ← Voltar para meu perfil
+</button>
             {/* VOLTAR */}
             <button
                 onClick={() => navigate("/perfil-artista")}

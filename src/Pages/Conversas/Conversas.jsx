@@ -50,7 +50,11 @@ const Conversas = () => {
                 );
 
 
-                const dados = await resposta.json();
+              const dados = await resposta.json();
+
+console.log("STATUS CONVERSAS:", resposta.status);
+console.log("CONVERSAS RECEBIDAS:", dados);
+console.log("TIPO DOS DADOS:", Array.isArray(dados));
 
 
                 if (!resposta.ok) {

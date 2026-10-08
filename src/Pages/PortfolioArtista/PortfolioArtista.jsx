@@ -13,13 +13,36 @@ const API_URL =
 const PortfolioArtista = () => {
 
     const { id } = useParams();
+    const [ehMeuPerfil, setEhMeuPerfil] = useState(false);
     const navigate = useNavigate();
     
 const [imagemSelecionada, setImagemSelecionada] = useState(null);
     const [artista, setArtista] = useState(null);
     const [artes, setArtes] = useState([]);
     const [carregando, setCarregando] = useState(true);
+useEffect(() => {
+    const tokenArtista = localStorage.getItem("token");
 
+    if (!tokenArtista) {
+        setEhMeuPerfil(false);
+        return;
+    }
+
+    try {
+        const payload = JSON.parse(
+            atob(tokenArtista.split(".")[1])
+        );
+
+        setEhMeuPerfil(
+            payload.tipo === "artista" &&
+            Number(payload.id) === Number(id)
+        );
+
+    } catch (erro) {
+        console.error("Erro ao verificar usuário:", erro);
+        setEhMeuPerfil(false);
+    }
+}, [id]);
     useEffect(() => {
 
         const buscarPortfolio = async () => {
@@ -38,7 +61,9 @@ if (!token) {
     navigate("/login");
     return;
 }
-
+console.log("TOKEN CLIENTE:", localStorage.getItem("tokenCliente"));
+console.log("TOKEN ARTISTA:", localStorage.getItem("token"));
+console.log("ID DO ARTISTA:", id);
 const resposta = await fetch(
     `${API_URL}/api/artistas/portfolio/${id}`,
     {
@@ -155,13 +180,83 @@ const resposta = await fetch(
                     </p>
 
 
-                  <button
-    className={styles.botaoChat}
-    onClick={() => navigate(`/chat/${id}`)}
->
-    💬 Chat
-</button>
+           {ehMeuPerfil ? (
+    <button
+        className={styles.botaoGerenciar}
+        onClick={() => navigate("/gerenciar-portfolio")}
+    >
+        ⚙️ Gerenciar portfólio
+    </button>
+) : (
+    <button
+        className={styles.botaoChat}
+        onClick={async () => {
+            try {
+                const token =
+                    localStorage.getItem("tokenCliente") ||
+                    localStorage.getItem("token");
 
+                if (!token) {
+                    navigate("/login");
+                    return;
+                }
+
+                const resposta = await fetch(
+                    `${API_URL}/api/chat/conversa`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            artista_id: id
+                        })
+                    }
+                );
+
+                const dados = await resposta.json();
+
+                console.log(
+                    "RESPOSTA DA CONVERSA:",
+                    dados
+                );
+
+                console.log(
+                    "ID DA CONVERSA RECEBIDO:",
+                    dados.id
+                );
+
+                if (!resposta.ok) {
+                    throw new Error(
+                        dados.erro ||
+                        "Erro ao criar conversa"
+                    );
+                }
+
+                if (!dados.id) {
+                    throw new Error(
+                        "Backend não retornou o ID da conversa."
+                    );
+                }
+
+                navigate(
+                    `/chat/conversa/${dados.id}`
+                );
+
+            } catch (erro) {
+
+                console.error(
+                    "Erro ao abrir conversa:",
+                    erro
+                );
+
+            }
+        }}
+    >
+        💬 Chat
+    </button>
+)}
                 </div>
 
             </section>
