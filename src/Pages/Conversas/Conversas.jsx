@@ -166,9 +166,23 @@ console.log("TIPO DOS DADOS:", Array.isArray(dados));
                                 }
                             >
 
-                                <div className={styles.avatar}>
-                                    🎨
-                                </div>
+                          <div className={styles.avatar}>
+    <span className={styles.avatarFallback}>🎨</span>
+
+    {conversa.outro_usuario_foto && (
+        <img
+            src={conversa.outro_usuario_foto}
+            alt={`Foto de ${
+                conversa.artista_username ||
+                conversa.outro_username ||
+                "usuário"
+            }`}
+            onError={(e) => {
+                e.currentTarget.style.display = "none";
+            }}
+        />
+    )}
+</div>
 
 
                                 <div className={styles.informacoes}>

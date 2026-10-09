@@ -261,21 +261,22 @@ console.log("artista_id recebido:", artista_id);
         });
     }
 });
-
-
 // ==========================================
 // BUSCAR MENSAGENS DE UMA CONVERSA
 // ==========================================
 router.get("/conversa/:id/mensagens", verificarToken, async (req, res) => {
-
     try {
-
-        const conversaId = req.params.id;
-        const usuarioId = req.usuario.id;
+        const conversaId = Number(req.params.id);
+        const usuarioId = Number(req.usuario.id);
         const tipo = req.usuario.tipo;
 
-        const pool = await poolPromise;
+        if (!Number.isInteger(conversaId) || conversaId <= 0) {
+            return res.status(400).json({
+                erro: "ID de conversa inválido"
+            });
+        }
 
+        const pool = await poolPromise;
 
         // Verifica se a conversa existe
         const conversa = await pool.request()
@@ -290,71 +291,80 @@ router.get("/conversa/:id/mensagens", verificarToken, async (req, res) => {
                 WHERE id = @id
             `);
 
-
         if (conversa.recordset.length === 0) {
-
             return res.status(404).json({
                 erro: "Conversa não encontrada"
             });
         }
 
-
         const dados = conversa.recordset[0];
-
 
         // Verifica se o usuário pertence à conversa
         const autorizado =
             (
                 tipo === "artista" &&
                 (
-                    dados.artista_id === usuarioId ||
-                    dados.artista_destino_id === usuarioId
+                    Number(dados.artista_id) === usuarioId ||
+                    Number(dados.artista_destino_id) === usuarioId
                 )
-            )
-            ||
+            ) ||
             (
                 tipo === "cliente" &&
-                dados.cliente_id === usuarioId
+                Number(dados.cliente_id) === usuarioId
             );
 
-
         if (!autorizado) {
-
             return res.status(403).json({
                 erro: "Você não pertence a esta conversa"
             });
         }
 
-
+        // Busca as mensagens e o username de cada remetente
         const mensagens = await pool.request()
             .input("conversa_id", conversaId)
             .query(`
                 SELECT
-                    id,
-                    conversa_id,
-                    remetente_tipo,
-                    remetente_id,
-                    texto,
-                    imagem,
-                    data_envio
-                FROM Mensagens
-                WHERE conversa_id = @conversa_id
-                ORDER BY data_envio ASC
+                    m.id,
+                    m.conversa_id,
+                    m.remetente_tipo,
+                    m.remetente_id,
+                    CASE
+                        WHEN m.remetente_tipo = 'artista'
+                            THEN a.username
+                        WHEN m.remetente_tipo = 'cliente'
+                            THEN c.username
+                    END AS remetente_username,
+                    m.texto,
+                    m.imagem,
+                    m.data_envio
+                FROM Mensagens m
+
+                LEFT JOIN Artistas a
+                    ON m.remetente_tipo = 'artista'
+                    AND a.id = m.remetente_id
+
+                LEFT JOIN Clientes c
+                    ON m.remetente_tipo = 'cliente'
+                    AND c.id = m.remetente_id
+
+                WHERE m.conversa_id = @conversa_id
+
+                ORDER BY
+                    m.data_envio ASC,
+                    m.id ASC
             `);
 
-
-        res.json(mensagens.recordset);
-
+        return res.json(mensagens.recordset);
 
     } catch (error) {
-
         console.error("Erro ao buscar mensagens:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             erro: "Erro ao buscar mensagens"
         });
     }
 });
+
 
 
 // ==========================================
@@ -477,23 +487,17 @@ router.post("/conversa/:id/mensagens", verificarToken, async (req, res) => {
 // LISTAR CONVERSAS DO USUÁRIO
 // ==========================================
 router.get("/conversas", verificarToken, async (req, res) => {
-
     try {
-
         const usuarioId = req.usuario.id;
         const tipo = req.usuario.tipo;
-
         const pool = await poolPromise;
 
         let resultado;
 
-
         // ==========================================
         // CLIENTE
         // ==========================================
-
         if (tipo === "cliente") {
-
             resultado = await pool.request()
                 .input("cliente_id", usuarioId)
                 .query(`
@@ -501,12 +505,90 @@ router.get("/conversas", verificarToken, async (req, res) => {
                         c.id AS conversa_id,
                         c.artista_id,
                         a.username AS artista_username,
+                        perfil.foto_perfil AS outro_usuario_foto,
                         m.texto AS ultima_mensagem,
                         m.data_envio AS ultima_mensagem_data
                     FROM Conversas c
-
                     INNER JOIN Artistas a
                         ON a.id = c.artista_id
+                    LEFT JOIN PerfilArtista perfil
+                        ON perfil.artista_id = a.id
+                    OUTER APPLY (
+                        SELECT TOP 1
+                            texto,
+                            data_envio
+                        FROM Mensagens
+                        WHERE conversa_id = c.id
+                        ORDER BY data_envio DESC
+                    ) m
+                    WHERE c.cliente_id = @cliente_id
+                    ORDER BY
+                        m.data_envio DESC,
+                        c.data_criacao DESC
+                `);
+
+            return res.json(resultado.recordset);
+        }
+
+        // ==========================================
+        // ARTISTA
+        // ==========================================
+        if (tipo === "artista") {
+            resultado = await pool.request()
+                .input("artista_id", usuarioId)
+                .query(`
+                    SELECT
+                        c.id AS conversa_id,
+
+                        CASE
+                            WHEN c.cliente_id IS NOT NULL
+                                THEN c.cliente_id
+                            WHEN c.artista_id = @artista_id
+                                THEN c.artista_destino_id
+                            ELSE c.artista_id
+                        END AS outro_usuario_id,
+
+                        CASE
+                            WHEN c.cliente_id IS NOT NULL
+                                THEN cliente.username
+                            WHEN c.artista_id = @artista_id
+                                THEN destino.username
+                            ELSE origem.username
+                        END AS outro_username,
+
+                        CASE
+                            WHEN c.cliente_id IS NOT NULL
+                                THEN 'cliente'
+                            ELSE 'artista'
+                        END AS outro_tipo,
+
+                        CASE
+                            WHEN c.cliente_id IS NOT NULL
+                                THEN cliente.foto_perfil
+                            WHEN c.artista_id = @artista_id
+                                THEN perfilDestino.foto_perfil
+                            ELSE perfilOrigem.foto_perfil
+                        END AS outro_usuario_foto,
+
+                        m.texto AS ultima_mensagem,
+                        m.data_envio AS ultima_mensagem_data
+
+                    FROM Conversas c
+
+                    LEFT JOIN Artistas origem
+                        ON origem.id = c.artista_id
+
+                    LEFT JOIN Artistas destino
+                        ON destino.id = c.artista_destino_id
+
+                    LEFT JOIN PerfilArtista perfilOrigem
+                        ON perfilOrigem.artista_id = origem.id
+
+                    LEFT JOIN PerfilArtista perfilDestino
+                        ON perfilDestino.artista_id = destino.id
+
+                    LEFT JOIN Clientes cliente
+                        ON cliente.id = c.cliente_id
 
                     OUTER APPLY (
                         SELECT TOP 1
@@ -517,7 +599,9 @@ router.get("/conversas", verificarToken, async (req, res) => {
                         ORDER BY data_envio DESC
                     ) m
 
-                    WHERE c.cliente_id = @cliente_id
+                    WHERE
+                        c.artista_id = @artista_id
+                        OR c.artista_destino_id = @artista_id
 
                     ORDER BY
                         m.data_envio DESC,
@@ -527,95 +611,20 @@ router.get("/conversas", verificarToken, async (req, res) => {
             return res.json(resultado.recordset);
         }
 
-
-        // ==========================================
-        // ARTISTA
-        // ==========================================
-
-    // ==========================================
-// ARTISTA
-// ==========================================
-
-if (tipo === "artista") {
-
-    resultado = await pool.request()
-        .input("artista_id", usuarioId)
-        .query(`
-            SELECT
-                c.id AS conversa_id,
-
-                CASE
-                    WHEN c.cliente_id IS NOT NULL
-                        THEN c.cliente_id
-                    WHEN c.artista_id = @artista_id
-                        THEN c.artista_destino_id
-                    ELSE c.artista_id
-                END AS outro_usuario_id,
-
-                CASE
-                    WHEN c.cliente_id IS NOT NULL
-                        THEN cliente.username
-                    WHEN c.artista_id = @artista_id
-                        THEN destino.username
-                    ELSE origem.username
-                END AS outro_username,
-
-                CASE
-                    WHEN c.cliente_id IS NOT NULL
-                        THEN 'cliente'
-                    ELSE 'artista'
-                END AS outro_tipo,
-
-                m.texto AS ultima_mensagem,
-                m.data_envio AS ultima_mensagem_data
-
-            FROM Conversas c
-
-            LEFT JOIN Artistas origem
-                ON origem.id = c.artista_id
-
-            LEFT JOIN Artistas destino
-                ON destino.id = c.artista_destino_id
-
-            LEFT JOIN Clientes cliente
-                ON cliente.id = c.cliente_id
-
-            OUTER APPLY (
-                SELECT TOP 1
-                    texto,
-                    data_envio
-                FROM Mensagens
-                WHERE conversa_id = c.id
-                ORDER BY data_envio DESC
-            ) m
-
-            WHERE
-                c.artista_id = @artista_id
-                OR c.artista_destino_id = @artista_id
-
-            ORDER BY
-                m.data_envio DESC,
-                c.data_criacao DESC
-        `);
-
-    return res.json(resultado.recordset);
-}
-
-
         return res.status(403).json({
             erro: "Tipo de usuário inválido"
         });
 
-
     } catch (error) {
-
         console.error("Erro ao listar conversas:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             erro: "Erro ao listar conversas"
         });
     }
 });
+
+
 
 router.post(
     "/conversa/:id/imagem",
@@ -731,7 +740,6 @@ router.get("/conversa/:id/detalhes", verificarToken, async (req, res) => {
         const resultado = await pool.request()
             .input("id", conversaId)
             .query(`
-              
 SELECT
     c.id,
     c.artista_id,
@@ -740,16 +748,20 @@ SELECT
     cliente.username AS cliente_username,
     cliente.foto_perfil AS cliente_foto,
     origem.username AS origem_username,
-    CAST(NULL AS NVARCHAR(MAX)) AS origem_foto,
+    perfilOrigem.foto_perfil AS origem_foto,
     destino.username AS destino_username,
-    CAST(NULL AS NVARCHAR(MAX)) AS destino_foto
+    perfilDestino.foto_perfil AS destino_foto
 FROM Conversas c
 LEFT JOIN Clientes cliente
     ON cliente.id = c.cliente_id
 LEFT JOIN Artistas origem
     ON origem.id = c.artista_id
+LEFT JOIN PerfilArtista perfilOrigem
+    ON perfilOrigem.artista_id = origem.id
 LEFT JOIN Artistas destino
     ON destino.id = c.artista_destino_id
+LEFT JOIN PerfilArtista perfilDestino
+    ON perfilDestino.artista_id = destino.id
 WHERE c.id = @id
             `);
 

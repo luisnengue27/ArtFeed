@@ -20,7 +20,8 @@ const Chat = () => {
     const [outroUsuario, setOutroUsuario] = useState(null);
 
     const inputImagemRef = useRef(null);
-
+const mensagensContainerRef = useRef(null);
+const ultimaMensagemIdRef = useRef(null);
     const pegarToken = () =>
         localStorage.getItem("tokenCliente") ||
         localStorage.getItem("token");
@@ -155,7 +156,28 @@ return () => {
             clearTimeout(timeoutId);
         };
     }, [conversaId, navigate]);
+useEffect(() => {
+    if (mensagens.length === 0) return;
 
+    const ultimaMensagem = mensagens[mensagens.length - 1];
+    const ultimaId = String(ultimaMensagem.id);
+
+    // Só rola quando a última mensagem realmente muda.
+    if (ultimaId === ultimaMensagemIdRef.current) return;
+
+    const container = mensagensContainerRef.current;
+
+    if (container) {
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: ultimaMensagemIdRef.current === null
+                ? "auto"
+                : "smooth"
+        });
+    }
+
+    ultimaMensagemIdRef.current = ultimaId;
+}, [mensagens]);
     const enviarMensagem = async (e) => {
         e.preventDefault();
 
@@ -326,7 +348,10 @@ return () => {
 </header>
 
 
-                <div className={styles.mensagens}>
+           <div
+    className={styles.mensagens}
+    ref={mensagensContainerRef}
+>
                     {mensagens.length === 0 ? (
                         <p className={styles.semMensagens}>
                             Nenhuma mensagem ainda.
@@ -337,11 +362,9 @@ return () => {
                                 key={mensagem.id}
                                 className={styles.mensagem}
                             >
-                                <strong>
-                                    {mensagem.remetente_tipo === "artista"
-                                        ? "Artista"
-                                        : "Cliente"}
-                                </strong>
+                             <strong>
+    @{mensagem.remetente_username || "usuário"}
+</strong>
 
                                 {mensagem.texto && (
                                     <p>{mensagem.texto}</p>

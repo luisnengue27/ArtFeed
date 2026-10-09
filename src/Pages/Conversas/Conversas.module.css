@@ -172,3 +172,23 @@
     cursor: pointer;
     margin-bottom: 20px;
 }
+.avatar {
+    position: relative;
+    overflow: hidden;
+}
+
+.avatar img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatarFallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
