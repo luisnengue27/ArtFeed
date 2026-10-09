@@ -311,9 +311,10 @@ return res.status(200).json({
         });
     }
 });
-// ============================
-// ATUALIZAR FOTO DO CLIENTE
-// ============================
+
+/* ============================
+   ATUALIZAR FOTO DO CLIENTE
+============================ */
 
 router.put(
     "/perfil/foto",
@@ -336,6 +337,7 @@ router.put(
             const clienteId = req.usuario.id;
             const pool = await poolPromise;
 
+            // Verifica se o cliente existe
             const cliente = await pool.request()
                 .input("id", sql.Int, clienteId)
                 .query(`
@@ -343,23 +345,6 @@ router.put(
                     FROM Clientes
                     WHERE id = @id
                 `);
-                
-            // Verifica se o artista já possui uma conversa com o cliente.
-            const conversa = await pool.request()
-                .input("artista_id", sql.Int, artistaId)
-                .input("cliente_id", sql.Int, clienteId)
-                .query(`
-                    SELECT TOP 1 id
-                    FROM Conversas
-                    WHERE artista_id = @artista_id
-                      AND cliente_id = @cliente_id
-                `);
-
-            if (conversa.recordset.length === 0) {
-                return res.status(403).json({
-                    erro: "Você precisa ter uma conversa com este cliente antes de avaliá-lo."
-                });
-            }
 
             if (cliente.recordset.length === 0) {
                 return res.status(404).json({
@@ -367,18 +352,16 @@ router.put(
                 });
             }
 
+            // Envia a imagem para o Cloudinary
             const imagem = await uploadFotoCliente(
                 req.file.buffer,
                 clienteId
             );
 
+            // Salva a URL da imagem no banco
             await pool.request()
                 .input("id", sql.Int, clienteId)
-                .input(
-                    "foto",
-                    sql.NVarChar(500),
-                    imagem.secure_url
-                )
+                .input("foto", sql.NVarChar(500), imagem.secure_url)
                 .query(`
                     UPDATE Clientes
                     SET foto_perfil = @foto
