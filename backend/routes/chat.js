@@ -791,7 +791,7 @@ WHERE c.id = @id
                     id: conversa.cliente_id,
                     tipo: "cliente",
                     username: conversa.cliente_username,
-                    foto: conversa.cliente_foto || null
+                    foto: conversa.cliente_foto || "/avatar-padrao.png"
                 };
             }
         } else if (Number(conversa.artista_id) === usuarioId) {

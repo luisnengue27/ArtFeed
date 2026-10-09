@@ -437,6 +437,66 @@ router.get("/", async (req, res) => {
         });
     }
 });
+
+/* ============================
+   LISTAR ARTISTAS QUE EU SIGO
+============================ */
+
+router.get("/meus-seguidos", verificarToken, async (req, res) => {
+    try {
+        const usuarioId = req.usuario.id;
+        const tipoUsuario = req.usuario.tipo;
+
+        if (tipoUsuario !== "artista" && tipoUsuario !== "cliente") {
+            return res.status(403).json({
+                erro: "Tipo de usuário inválido."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipoUsuario", sql.VarChar(20), tipoUsuario)
+            .query(`
+                SELECT DISTINCT
+                    a.id,
+                    a.username,
+                    p.nome,
+                    p.preco,
+                    p.cidade,
+                    p.profissao,
+                    p.tags,
+                    p.descricao,
+                    p.foto_perfil AS foto
+                FROM Seguidores s
+                INNER JOIN Artistas a
+                    ON a.id = s.artista_id
+                INNER JOIN PerfilArtista p
+                    ON p.artista_id = a.id
+                WHERE
+                    (
+                        @tipoUsuario = 'cliente'
+                        AND s.cliente_id = @usuarioId
+                    )
+                    OR
+                    (
+                        @tipoUsuario = 'artista'
+                        AND s.artista_seguidor_id = @usuarioId
+                    )
+                ORDER BY a.username
+            `);
+
+        return res.status(200).json(resultado.recordset);
+
+    } catch (erro) {
+        console.error("Erro ao listar artistas seguidos:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao buscar artistas seguidos."
+        });
+    }
+});
 // ===============================
 // PESQUISAR ARTISTAS
 // ===============================

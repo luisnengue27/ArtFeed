@@ -1,0 +1,141 @@
+
+.conexao {
+    width: min(100% - 32px, 900px);
+    margin: 32px auto;
+    color: #252525;
+}
+
+.conexao > h1 {
+    margin-bottom: 8px;
+    font-size: 30px;
+}
+
+.conexao > p {
+    color: #666;
+    margin-bottom: 24px;
+}
+
+.lista-conexoes {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.card-conexao {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    min-width: 0;
+}
+
+.card-conexao img {
+    display: block;
+    width: 68px;
+    height: 68px;
+    min-width: 68px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eee;
+}
+
+.info-conexao {
+    flex: 1;
+    min-width: 0;
+}
+
+.info-conexao h2 {
+    margin: 0 0 5px;
+    font-size: 17px;
+    overflow-wrap: anywhere;
+}
+
+.info-conexao p {
+    margin: 3px 0;
+    color: #666;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.card-conexao button,
+.acesso-conversas button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    background: #6c3fc5;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.card-conexao button:hover,
+.acesso-conversas button:hover {
+    background: #552da5;
+}
+
+.card-conexao button:active,
+.acesso-conversas button:active {
+    transform: scale(0.97);
+}
+
+.card-conexao button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.acesso-conversas {
+    margin-top: 32px;
+    padding: 22px;
+    background: #f7f4fc;
+    border: 1px solid #e8def8;
+    border-radius: 12px;
+}
+
+.acesso-conversas h2 {
+    margin: 0 0 8px;
+    font-size: 21px;
+}
+
+.acesso-conversas p {
+    margin: 0 0 16px;
+    color: #666;
+    line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+    .conexao {
+        width: calc(100% - 24px);
+        margin: 22px auto;
+    }
+
+    .card-conexao {
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .card-conexao img {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+    }
+
+    .info-conexao h2 {
+        font-size: 15px;
+    }
+
+    .info-conexao p {
+        font-size: 12px;
+    }
+
+    .card-conexao button {
+        padding: 9px 12px;
+        font-size: 13px;
+    }
+}

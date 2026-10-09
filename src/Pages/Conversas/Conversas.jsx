@@ -223,7 +223,14 @@ console.log("TIPO DOS DADOS:", Array.isArray(dados));
                     </div>
 
                 )}
-
+                <div className={styles.chat}>
+               <button
+                              className={styles.voltar}
+                              onClick={() => navigate(-1)}
+                          >
+                              ← Voltar
+                          </button>
+                          </div>
             </section>
 
         </main>

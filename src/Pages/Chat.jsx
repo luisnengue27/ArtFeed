@@ -282,23 +282,26 @@ return () => {
                 <header className={styles.header}>
     {outroUsuario ? (
         <div className={styles.headerUsuario}>
-            {outroUsuario.foto ? (
-                <img
-                    className={styles.avatarUsuario}
-                    src={
-                        outroUsuario.foto.startsWith("http")
-                            ? outroUsuario.foto
-                            : `${API_URL}${outroUsuario.foto}`
-                    }
-                    alt={`Foto de ${outroUsuario.username}`}
-                />
-            ) : (
-                <div className={styles.avatarUsuario}>
-                    👤
-                </div>
-            )}
+          
+<img
+    className={styles.avatarUsuario}
+    src={
+        outroUsuario.foto
+            ? (
+                outroUsuario.foto.startsWith("http")
+                    ? outroUsuario.foto
+                    : `${API_URL}${outroUsuario.foto}`
+            )
+            : "/avatar-padrao.png"
+    }
+    alt={`Foto de ${outroUsuario.username}`}
+    onError={(e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = "/avatar-padrao.png";
+    }}
+/>
 
-```
+
         {outroUsuario.tipo === "cliente" ? (
             <button
                 type="button"

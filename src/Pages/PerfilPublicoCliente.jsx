@@ -140,11 +140,18 @@ const PerfilPublicoCliente = () => {
             </button>
 
             <section className={styles.perfil}>
-                <img
-                    className={styles.foto}
-                    src={cliente.foto || "/avatar-padrao.png"}
-                    alt={`Foto de ${cliente.username}`}
-                />
+           ```jsx
+<img
+    className={styles.foto}
+    src={cliente.foto || "/avatar-padrao.png"}
+    alt={`Foto de ${cliente.username}`}
+    onError={(e) => {
+        e.currentTarget.onerror = null;
+        e.currentTarget.src = "/avatar-padrao.png";
+    }}
+/>
+```
+
 
                 <h1>{cliente.username}</h1>
 
