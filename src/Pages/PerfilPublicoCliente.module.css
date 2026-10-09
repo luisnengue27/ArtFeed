@@ -1,0 +1,115 @@
+
+.pagina {
+    min-height: 100vh;
+    padding: 32px 20px;
+    background: #f5f5f8;
+}
+
+.voltar {
+    border: none;
+    background: transparent;
+    font-size: 16px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.perfil {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    background: white;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.foto {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #eee;
+}
+
+.perfil h1 {
+    margin: 18px 0 8px;
+    overflow-wrap: anywhere;
+}
+
+.data {
+    color: #666;
+    font-size: 14px;
+}
+
+.avaliacoes {
+    margin: 24px 0;
+}
+
+.estrelas {
+    color: #f0ad00;
+    font-size: 30px;
+    letter-spacing: 3px;
+}
+
+.avaliacoes p {
+    color: #555;
+}
+
+.avaliar {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.avaliar h2 {
+    font-size: 20px;
+}
+
+.avaliar p {
+    color: #666;
+    font-size: 14px;
+}
+
+.seletorEstrelas {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 18px 0;
+}
+
+.seletorEstrelas button {
+    border: none;
+    background: transparent;
+    color: #ccc;
+    font-size: 36px;
+    cursor: pointer;
+}
+
+.seletorEstrelas button.selecionada {
+    color: #f0ad00;
+}
+
+.salvar {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #6c3bd1;
+    color: white;
+    cursor: pointer;
+}
+
+.salvar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.erro {
+    color: #c62828;
+    margin-top: 16px;
+}
+
+.sucesso {
+    color: #218838;
+    margin-top: 16px;
+}

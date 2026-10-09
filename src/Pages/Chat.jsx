@@ -17,6 +17,7 @@ const Chat = () => {
     const [carregando, setCarregando] = useState(true);
     const [enviando, setEnviando] = useState(false);
     const [enviandoImagem, setEnviandoImagem] = useState(false);
+    const [outroUsuario, setOutroUsuario] = useState(null);
 
     const inputImagemRef = useRef(null);
 
@@ -36,6 +37,55 @@ useEffect(() => {
         document.documentElement.style.overflow = overflowHtmlAnterior;
     };
 }, []);
+
+useEffect(() => {
+let ativo = true;
+
+
+const buscarOutroUsuario = async () => {
+    try {
+        const token = pegarToken();
+
+        if (!token) return;
+
+        const resposta = await fetch(
+            `${API_URL}/api/chat/conversa/${conversaId}/detalhes`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.erro || "Erro ao buscar participante."
+            );
+        }
+
+        if (ativo) {
+            setOutroUsuario(dados);
+        }
+    } catch (erro) {
+        console.error(
+            "Erro ao buscar participante da conversa:",
+            erro
+        );
+    }
+};
+
+buscarOutroUsuario();
+
+return () => {
+    ativo = false;
+};
+
+
+}, [conversaId]);
+
+
     useEffect(() => {
         let ativo = true;
         let timeoutId;
@@ -230,8 +280,48 @@ useEffect(() => {
 
             <section className={styles.container}>
                 <header className={styles.header}>
-                    <h1>💬 Chat</h1>
-                </header>
+    {outroUsuario ? (
+        <div className={styles.headerUsuario}>
+            {outroUsuario.foto ? (
+                <img
+                    className={styles.avatarUsuario}
+                    src={
+                        outroUsuario.foto.startsWith("http")
+                            ? outroUsuario.foto
+                            : `${API_URL}${outroUsuario.foto}`
+                    }
+                    alt={`Foto de ${outroUsuario.username}`}
+                />
+            ) : (
+                <div className={styles.avatarUsuario}>
+                    👤
+                </div>
+            )}
+
+```
+        {outroUsuario.tipo === "cliente" ? (
+            <button
+                type="button"
+                className={styles.nomeUsuario}
+                onClick={() =>
+                    navigate(
+                        `/perfil-cliente/${outroUsuario.id}`
+                    )
+                }
+            >
+                {outroUsuario.username}
+            </button>
+        ) : (
+            <h1>{outroUsuario.username}</h1>
+        )}
+    </div>
+) : (
+    <h1>💬 Chat</h1>
+)}
+```
+
+</header>
+
 
                 <div className={styles.mensagens}>
                     {mensagens.length === 0 ? (

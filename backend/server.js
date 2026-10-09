@@ -3,7 +3,17 @@ const path = require("path");
 require("dotenv").config({
     path: path.join(__dirname, ".env")
 });
+const fs = require("fs");
 
+console.log(
+    "Arquivo .env encontrado:",
+    fs.existsSync(path.join(__dirname, ".env"))
+);
+
+console.log(
+    "Caminho do .env:",
+    path.join(__dirname, ".env")
+);
 console.log("Cloudinary carregado:", {
     cloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: !!process.env.CLOUDINARY_API_KEY,

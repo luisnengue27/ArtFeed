@@ -36,7 +36,7 @@ import Conversas from "../Pages/Conversas/Conversas";
 
 import Chat from "../Pages/Chat";
 
-
+import PerfilPublicoCliente from "../Pages/PerfilPublicoCliente";
 
 const AppRoutes = () => {
     return (
@@ -81,6 +81,10 @@ const AppRoutes = () => {
                         path="/perfil-cliente"
                         element={<PerfilCliente />}
                     />
+                    <Route
+    path="/perfil-cliente/:id"
+    element={<PerfilPublicoCliente />}
+/>
 
                     <Route
                         path="/cadastro"

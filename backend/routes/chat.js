@@ -713,4 +713,111 @@ router.post(
         }
     }
 );
+
+router.get("/conversa/:id/detalhes", verificarToken, async (req, res) => {
+    try {
+        const conversaId = Number(req.params.id);
+        const usuarioId = Number(req.usuario.id);
+        const tipo = req.usuario.tipo;
+
+        if (!Number.isInteger(conversaId) || conversaId <= 0) {
+            return res.status(400).json({
+                erro: "ID de conversa inválido."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .input("id", conversaId)
+            .query(`
+              
+SELECT
+    c.id,
+    c.artista_id,
+    c.cliente_id,
+    c.artista_destino_id,
+    cliente.username AS cliente_username,
+    cliente.foto_perfil AS cliente_foto,
+    origem.username AS origem_username,
+    CAST(NULL AS NVARCHAR(MAX)) AS origem_foto,
+    destino.username AS destino_username,
+    CAST(NULL AS NVARCHAR(MAX)) AS destino_foto
+FROM Conversas c
+LEFT JOIN Clientes cliente
+    ON cliente.id = c.cliente_id
+LEFT JOIN Artistas origem
+    ON origem.id = c.artista_id
+LEFT JOIN Artistas destino
+    ON destino.id = c.artista_destino_id
+WHERE c.id = @id
+            `);
+
+        if (resultado.recordset.length === 0) {
+            return res.status(404).json({
+                erro: "Conversa não encontrada."
+            });
+        }
+
+        const conversa = resultado.recordset[0];
+
+        const autorizado =
+            tipo === "cliente"
+                ? Number(conversa.cliente_id) === usuarioId
+                : tipo === "artista" &&
+                    (
+                        Number(conversa.artista_id) === usuarioId ||
+                        Number(conversa.artista_destino_id) === usuarioId
+                    );
+
+        if (!autorizado) {
+            return res.status(403).json({
+                erro: "Você não pertence a esta conversa."
+            });
+        }
+
+        let outroUsuario;
+
+        if (conversa.cliente_id !== null) {
+            if (tipo === "cliente") {
+                outroUsuario = {
+                    id: conversa.artista_id,
+                    tipo: "artista",
+                    username: conversa.origem_username,
+                    foto: conversa.origem_foto || null
+                };
+            } else {
+                outroUsuario = {
+                    id: conversa.cliente_id,
+                    tipo: "cliente",
+                    username: conversa.cliente_username,
+                    foto: conversa.cliente_foto || null
+                };
+            }
+        } else if (Number(conversa.artista_id) === usuarioId) {
+            outroUsuario = {
+                id: conversa.artista_destino_id,
+                tipo: "artista",
+                username: conversa.destino_username,
+                foto: conversa.destino_foto || null
+            };
+        } else {
+            outroUsuario = {
+                id: conversa.artista_id,
+                tipo: "artista",
+                username: conversa.origem_username,
+                foto: conversa.origem_foto || null
+            };
+        }
+
+        return res.json(outroUsuario);
+
+    } catch (error) {
+        console.error("Erro ao buscar detalhes da conversa:", error);
+
+        return res.status(500).json({
+            erro: "Não foi possível buscar os detalhes da conversa."
+        });
+    }
+});
 module.exports = router;
