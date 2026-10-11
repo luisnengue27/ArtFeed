@@ -22,9 +22,15 @@ const chatRoutes = require("./routes/chat");
 
 
 // CORS precisa vir antes das rotas
-app.use(cors());
+app.use((req, res, next) => {
+    if (req.path === "/api/contato") {
+        console.log(
+            `[DIAGNOSTICO] ${req.method} ${req.originalUrl} recebido`
+        );
+    }
 
-app.use(express.json());
+    next();
+});;
 
 
 // Rotas
