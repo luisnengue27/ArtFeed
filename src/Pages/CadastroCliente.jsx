@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../services/api";
+import { Link } from "react-router-dom";
+import "./CadastroForm.css";
 
 const CadastroCliente = () => {
 const navigate = useNavigate();
@@ -79,77 +81,30 @@ const navigate = useNavigate();
         }
     };
 
-    return (
-        <div>
+  return (
+    <div className="cadastro-form-pagina">
+        <h1>Cadastro de Artista</h1>
 
-            <h1>Cadastro de Cliente</h1>
+        <form className="cadastro-form" onSubmit={handleSubmit}>
+            {/* Mantenha aqui os quatro campos existentes */}
+            {/* Nome de usuário, e-mail, senha e confirmar senha */}
 
-            <form onSubmit={handleSubmit}>
+            {/* Mantenha o botão Criar conta */}
+        </form>
 
-                <div>
-                    <label>Nome de usuário</label>
+        {mensagem && (
+            <p className="cadastro-mensagem">{mensagem}</p>
+        )}
 
-                    <input
-                        type="text"
-                        name="username"
-                        value={formulario.username}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
+        {erro && (
+            <p className="cadastro-erro">{erro}</p>
+        )}
 
-                <div>
-                    <label>E-mail</label>
-
-                    <input
-                        type="email"
-                        name="email"
-                        value={formulario.email}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label>Senha</label>
-
-                    <input
-                        type="password"
-                        name="senha"
-                        value={formulario.senha}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label>Confirmar senha</label>
-
-                    <input
-                        type="password"
-                        name="confirmarSenha"
-                        value={formulario.confirmarSenha}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <button type="submit">
-                    Criar conta
-                </button>
-
-            </form>
-
-            {mensagem && (
-                <p>{mensagem}</p>
-            )}
-
-            {erro && (
-                <p>{erro}</p>
-            )}
-
-        </div>
-    );
+        <Link to="/cadastro" className="cadastro-voltar">
+            ← Voltar para escolha de cadastro
+        </Link>
+    </div>
+);
 };
 
 export default CadastroCliente;

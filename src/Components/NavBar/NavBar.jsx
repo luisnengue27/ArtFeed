@@ -1,45 +1,125 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { apiFetch } from "../../services/api";
 import "../NavBar/NavBar.css";
 
 const Navbar = () => {
     const [tipoUsuario, setTipoUsuario] = useState(null);
+    const [perfilUsuario, setPerfilUsuario] = useState(null);
     const [pesquisa, setPesquisa] = useState("");
 
     const navigate = useNavigate();
 
     useEffect(() => {
-        const verificarLogin = () => {
+        let ativo = true;
+
+        const verificarLogin = async () => {
             const tokenArtista = localStorage.getItem("token");
             const tokenCliente = localStorage.getItem("tokenCliente");
 
-            if (tokenCliente) {
-                setTipoUsuario("cliente");
-            } else if (tokenArtista) {
-                setTipoUsuario("artista");
-            } else {
-                setTipoUsuario(null);
+            const tipo = tokenCliente
+                ? "cliente"
+                : tokenArtista
+                    ? "artista"
+                    : null;
+
+            setTipoUsuario(tipo);
+
+            if (!tipo) {
+                setPerfilUsuario(null);
+                return;
+            }
+
+            const chaveLocal = tipo === "cliente" ? "cliente" : "artista";
+            const token = tipo === "cliente" ? tokenCliente : tokenArtista;
+
+            let perfilLocal = {};
+
+            try {
+                perfilLocal = JSON.parse(
+                    localStorage.getItem(chaveLocal) || "{}"
+                );
+            } catch {
+                perfilLocal = {};
+            }
+
+            // Mostra os dados locais imediatamente, enquanto consulta a API.
+            if (ativo) {
+                setPerfilUsuario({
+                    username: perfilLocal.username || perfilLocal.nome || "",
+                    foto:
+                        perfilLocal.foto ||
+                        perfilLocal.foto_perfil ||
+                        perfilLocal.imagem ||
+                        ""
+                });
+            }
+
+            try {
+                const rota = tipo === "cliente"
+                    ? "/api/clientes/perfil"
+                    : "/api/artistas/perfil";
+
+                const resposta = await apiFetch(rota, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (!resposta.ok) return;
+
+                const dados = await resposta.json();
+
+                const perfil = tipo === "cliente"
+                    ? dados.cliente || dados
+                    : dados.perfil || dados;
+
+                if (!ativo || !perfil) return;
+
+                const username =
+                    perfil.username ||
+                    perfil.nome ||
+                    perfilLocal.username ||
+                    perfilLocal.nome ||
+                    "";
+
+                const foto =
+                    perfil.foto ||
+                    perfil.foto_perfil ||
+                    perfil.imagem ||
+                    perfilLocal.foto ||
+                    perfilLocal.foto_perfil ||
+                    perfilLocal.imagem ||
+                    "";
+
+                setPerfilUsuario({ username, foto });
+
+                // Mantém o cache local atualizado sem apagar outros dados.
+                localStorage.setItem(
+                    chaveLocal,
+                    JSON.stringify({
+                        ...perfilLocal,
+                        ...perfil,
+                        username,
+                        foto,
+                        foto_perfil: foto
+                    })
+                );
+            } catch (erro) {
+                console.error("Não foi possível atualizar os dados da navbar:", erro);
             }
         };
 
         verificarLogin();
 
-        window.addEventListener(
-            "loginStatusChanged",
-            verificarLogin
-        );
+        window.addEventListener("loginStatusChanged", verificarLogin);
 
         return () => {
-            window.removeEventListener(
-                "loginStatusChanged",
-                verificarLogin
-            );
+            ativo = false;
+            window.removeEventListener("loginStatusChanged", verificarLogin);
         };
     }, []);
-
-    // ============================
-    // PESQUISA
-    // ============================
 
     const realizarPesquisa = (e) => {
         if (e.key === "Enter") {
@@ -47,58 +127,42 @@ const Navbar = () => {
 
             if (!termo) return;
 
-            navigate(
-                `/perfis?busca=${encodeURIComponent(termo)}`
-            );
+            navigate(`/perfis?busca=${encodeURIComponent(termo)}`);
         }
     };
 
+    const username = perfilUsuario?.username || "Meu Perfil";
+    const foto = perfilUsuario?.foto;
+    const inicial = username !== "Meu Perfil"
+        ? username.charAt(0).toUpperCase()
+        : "U";
+
     return (
         <nav className="navbar">
-
-            <h2 className="logo">ArtFeed</h2>
+            <Link to="/" className="logo navbar-logo">
+                ArtFeed
+            </Link>
 
             <ul className="nav-links">
-
-                <li>
-                    <Link to="/">Início</Link>
-                </li>
-
-                <li>
-                    <Link to="/explorar">Explorar</Link>
-                </li>
-
-                <li>
-                    <Link to="/perfis">Perfis</Link>
-                </li>
-
-                <li>
-                    <Link to="/conexao">Conexões</Link>
-                </li>
-
-                <li>
-                    <Link to="/FaleConosco">
-                        Fale Conosco
-                    </Link>
-                </li>
-
+                <li><Link to="/">Início</Link></li>
+                <li><Link to="/explorar">Explorar</Link></li>
+                <li><Link to="/perfis">Perfis</Link></li>
+                <li><Link to="/conexao">Conexões</Link></li>
+                <li><Link to="/FaleConosco">Fale Conosco</Link></li>
             </ul>
 
             <div className="nav-actions">
-
                 <input
                     type="text"
                     placeholder="Pesquisar..."
                     className="search"
                     value={pesquisa}
-                    onChange={(e) =>
-                        setPesquisa(e.target.value)
-                    }
+                    onChange={(e) => setPesquisa(e.target.value)}
                     onKeyDown={realizarPesquisa}
+                    aria-label="Pesquisar perfis"
                 />
 
                 {tipoUsuario ? (
-
                     <Link
                         to={
                             tipoUsuario === "cliente"
@@ -107,33 +171,43 @@ const Navbar = () => {
                         }
                         className="perfil-btn"
                     >
-                        Meu Perfil
+                        <span className="perfil-btn-avatar">
+                            {foto ? (
+                                <img
+                                    src={foto}
+                                    alt=""
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = "none";
+                                    }}
+                                />
+                            ) : null}
+
+                            {!foto && (
+                                <span>{inicial}</span>
+                            )}
+                        </span>
+
+                        <span className="perfil-btn-texto">
+                            <span className="perfil-btn-legenda">Minha conta</span>
+                            <strong>{username}</strong>
+                        </span>
+
+                        <span className="perfil-btn-seta" aria-hidden="true">
+                            ›
+                        </span>
                     </Link>
-
                 ) : (
-
                     <>
-
-                        <Link
-                            to="/cadastro"
-                            className="cadastro-btn"
-                        >
+                        <Link to="/cadastro" className="cadastro-btn">
                             Cadastro
                         </Link>
 
-                        <Link
-                            to="/login"
-                            className="login-btn"
-                        >
+                        <Link to="/login" className="login-btn">
                             Login
                         </Link>
-
                     </>
-
                 )}
-
             </div>
-
         </nav>
     );
 };

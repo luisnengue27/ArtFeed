@@ -1,0 +1,195 @@
+
+.escolher-login-pagina {
+    width: 100%;
+    min-height: calc(100vh - 172px);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    color: #f8fafc;
+    background:
+        radial-gradient(
+            ellipse at 15% 15%,
+            rgba(124, 58, 237, 0.17),
+            transparent 45%
+        ),
+        radial-gradient(
+            ellipse at 90% 85%,
+            rgba(13, 148, 136, 0.12),
+            transparent 40%
+        ),
+        #0b0d17;
+}
+
+.escolher-login-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 10px;
+    color: #f8fafc;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    text-decoration: none;
+}
+
+.escolher-login-logo span {
+    color: #a78bfa;
+    font-size: 36px;
+}
+
+.escolher-login-subtitulo {
+    margin: 0 0 40px;
+    color: #9ca3af;
+    font-size: 14px;
+    text-align: center;
+}
+
+.escolher-login-conteudo {
+    width: 100%;
+    max-width: 850px;
+    text-align: center;
+}
+
+.escolher-login-conteudo h1 {
+    margin: 0 0 12px;
+    color: #f8fafc;
+    font-size: clamp(27px, 4vw, 38px);
+    letter-spacing: -1px;
+}
+
+.escolher-login-descricao {
+    margin: 0 0 32px;
+    color: #a1a1aa;
+    font-size: 15px;
+}
+
+.escolher-login-opcoes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    text-align: left;
+}
+
+.escolher-login-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 245px;
+    box-sizing: border-box;
+    padding: 28px;
+    border: 1px solid #343447;
+    border-radius: 18px;
+    color: #f8fafc;
+    background: rgba(24, 24, 39, 0.88);
+    text-decoration: none;
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.escolher-login-artista {
+    --cor-login: #a78bfa;
+}
+
+.escolher-login-cliente {
+    --cor-login: #5eead4;
+}
+
+.escolher-login-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--cor-login);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+}
+
+.escolher-login-icone {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    color: var(--cor-login);
+    background: color-mix(
+        in srgb,
+        var(--cor-login) 13%,
+        transparent
+    );
+    font-size: 30px;
+}
+
+.escolher-login-card h2 {
+    margin: 0 0 12px;
+    font-size: 22px;
+}
+
+.escolher-login-card p {
+    margin: 0 0 24px;
+    color: #b4b4c2;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.escolher-login-acao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: auto;
+    color: var(--cor-login);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.escolher-login-acao span {
+    font-size: 21px;
+    transition: transform 0.2s ease;
+}
+
+.escolher-login-card:hover .escolher-login-acao span {
+    transform: translateX(5px);
+}
+
+.escolher-login-cadastro {
+    margin-top: 32px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.escolher-login-cadastro a {
+    color: #c4b5fd;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.escolher-login-cadastro a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+    .escolher-login-pagina {
+        padding: 32px 18px;
+    }
+
+    .escolher-login-subtitulo {
+        margin-bottom: 30px;
+    }
+
+    .escolher-login-opcoes {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .escolher-login-card {
+        min-height: auto;
+        padding: 23px;
+    }
+
+    .escolher-login-card p {
+        margin-bottom: 20px;
+    }
+}

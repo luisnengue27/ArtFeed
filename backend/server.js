@@ -1,29 +1,19 @@
 const path = require("path");
 
 require("dotenv").config({
-    path: path.join(__dirname, ".env")
+    path: path.join(__dirname, ".env"),
 });
 const fs = require("fs");
-
-console.log(
-    "Arquivo .env encontrado:",
-    fs.existsSync(path.join(__dirname, ".env"))
-);
-
-console.log(
-    "Caminho do .env:",
-    path.join(__dirname, ".env")
-);
-console.log("Cloudinary carregado:", {
-    cloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: !!process.env.CLOUDINARY_API_KEY,
-    apiSecret: !!process.env.CLOUDINARY_API_SECRET
-});
+const contatoRoutes = require("./routes/contato");
 const express = require("express");
 const cors = require("cors");
 
 const app = express();
-
+console.log("EMAIL_USER configurado:", Boolean(process.env.EMAIL_USER));
+console.log(
+  "EMAIL_APP_PASSWORD configurada:",
+  Boolean(process.env.EMAIL_APP_PASSWORD)
+);
 const testeRoutes = require("./routes/teste");
 const { poolPromise } = require("./db");
 const artistasRoutes = require("./routes/artistas");
@@ -42,7 +32,7 @@ app.use("/api/teste", testeRoutes);
 app.use("/api/artistas", artistasRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/chat", chatRoutes);
-
+app.use("/api/contato", contatoRoutes);
 
 // Arquivos estáticos
 app.use("/uploads", express.static("uploads"));

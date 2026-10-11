@@ -1,0 +1,225 @@
+.cadastro-pagina {
+        height: 100%;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 24px;
+    overflow: hidden;
+    color: #f8fafc;
+    background:
+        radial-gradient(
+            ellipse at 15% 15%,
+            rgba(124, 58, 237, 0.18),
+            transparent 45%
+        ),
+        radial-gradient(
+            ellipse at 90% 85%,
+            rgba(13, 148, 136, 0.13),
+            transparent 40%
+        ),
+        #0b0d17;
+}
+
+.cadastro-conteudo {
+    width: 100%;
+    max-width: 850px;
+    text-align: center;
+}
+
+.cadastro-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 12px;
+    color: #f8fafc;
+    font-size: 30px;
+    font-weight: 800;
+    text-decoration: none;
+    letter-spacing: -1px;
+}
+
+.cadastro-logo-icone {
+    color: #a78bfa;
+    font-size: 36px;
+}
+
+.cadastro-subtitulo {
+    margin: 0 0 42px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.cadastro-conteudo h1 {
+    margin: 0 0 12px;
+    font-size: clamp(27px, 4vw, 38px);
+    letter-spacing: -1px;
+}
+
+.cadastro-descricao {
+    margin: 0 0 32px;
+    color: #a1a1aa;
+    font-size: 15px;
+}
+
+.cadastro-opcoes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    text-align: left;
+}
+
+.cadastro-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 245px;
+    box-sizing: border-box;
+    padding: 28px;
+    border: 1px solid #343447;
+    border-radius: 18px;
+    color: #f8fafc;
+    text-decoration: none;
+    background: rgba(24, 24, 39, 0.88);
+    transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.cadastro-card-artista {
+    --cor-card: #a78bfa;
+}
+
+.cadastro-card-cliente {
+    --cor-card: #5eead4;
+}
+
+.cadastro-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--cor-card);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+}
+
+.cadastro-icone {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    margin-bottom: 18px;
+    border-radius: 14px;
+    color: var(--cor-card);
+    background: color-mix(in srgb, var(--cor-card) 13%, transparent);
+    font-size: 30px;
+}
+
+.cadastro-card h2 {
+    margin: 0 0 12px;
+    font-size: 22px;
+}
+
+.cadastro-card p {
+    margin: 0 0 24px;
+    color: #b4b4c2;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.cadastro-card-acao {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-top: auto;
+    color: var(--cor-card);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.cadastro-card-acao span {
+    font-size: 21px;
+    transition: transform 0.2s ease;
+}
+
+.cadastro-card:hover .cadastro-card-acao span {
+    transform: translateX(5px);
+}
+
+.cadastro-login {
+    margin-top: 32px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.cadastro-login a {
+    color: #c4b5fd;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.cadastro-login a:hover {
+    text-decoration: underline;
+}
+
+.cadastro-dev {
+    position: absolute;
+    right: 20px;
+    bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 12px;
+    border: 1px solid #343447;
+    border-radius: 9px;
+    color: #9ca3af;
+    background: rgba(24, 24, 39, 0.8);
+    font-size: 11px;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.cadastro-dev span:first-child {
+    color: #c4b5fd;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.cadastro-dev:hover {
+    color: #fff;
+    border-color: #8b5cf6;
+}
+
+@media (max-width: 600px) {
+    .cadastro-pagina {
+        padding: 38px 18px 85px;
+    }
+
+    .cadastro-subtitulo {
+        margin-bottom: 32px;
+    }
+
+    .cadastro-opcoes {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .cadastro-card {
+        min-height: auto;
+        padding: 23px;
+    }
+
+    .cadastro-card p {
+        margin-bottom: 20px;
+    }
+
+    .cadastro-dev {
+        right: 12px;
+        bottom: 12px;
+    }
+}

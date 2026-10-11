@@ -2,5 +2,10 @@ html,
 body,
 #root {
     height: 100%;
-    background-color: #121212;
+    margin: 0;
+     background-color: #121212;
+}
+
+#root {
+    width: 100%;
 }

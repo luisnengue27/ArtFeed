@@ -1,0 +1,95 @@
+
+const express = require("express");
+const nodemailer = require("nodemailer");
+
+const router = express.Router();
+
+const emailUsuario = process.env.EMAIL_USER;
+const senhaApp = process.env.EMAIL_APP_PASSWORD;
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: emailUsuario,
+        pass: senhaApp,
+    },
+});
+
+router.post("/", async (req, res) => {
+    try {
+        const { nome, email, assunto, mensagem } = req.body || {};
+
+        if (!nome || !email || !assunto || !mensagem) {
+            return res.status(400).json({
+                mensagem: "Preencha todos os campos.",
+            });
+        }
+
+        if (
+            typeof nome !== "string" ||
+            typeof email !== "string" ||
+            typeof assunto !== "string" ||
+            typeof mensagem !== "string"
+        ) {
+            return res.status(400).json({
+                mensagem: "Os dados enviados são inválidos.",
+            });
+        }
+
+        const nomeLimpo = nome.trim();
+        const emailLimpo = email.trim();
+        const assuntoLimpo = assunto.trim();
+        const mensagemLimpa = mensagem.trim();
+
+        const assuntosPermitidos = [
+            "Duvida",
+            "Problema tecnico",
+            "Sugestao",
+            "Denuncia",
+            "Outro",
+        ];
+
+        if (
+            !nomeLimpo ||
+            nomeLimpo.length > 100 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo) ||
+            emailLimpo.length > 254 ||
+            !assuntosPermitidos.includes(assuntoLimpo) ||
+            !mensagemLimpa ||
+            mensagemLimpa.length > 3000
+        ) {
+            return res.status(400).json({
+                mensagem: "Verifique os dados preenchidos.",
+            });
+        }
+
+        await transporter.sendMail({
+            from: `"ArtFeed - Contato" <${emailUsuario}>`,
+            to: "artfeed.fieb@gmail.com",
+            replyTo: emailLimpo,
+            subject: `[ArtFeed] ${assuntoLimpo}`,
+            text: [
+                "Nova mensagem recebida pelo Fale Conosco do ArtFeed.",
+                "",
+                `Nome: ${nomeLimpo}`,
+                `E-mail para resposta: ${emailLimpo}`,
+                `Assunto: ${assuntoLimpo}`,
+                "",
+                "Mensagem:",
+                mensagemLimpa,
+            ].join("\n"),
+        });
+
+        return res.status(200).json({
+            mensagem: "Mensagem enviada com sucesso!",
+        });
+    } catch (erro) {
+        console.error("Erro ao enviar mensagem de contato:", erro.message);
+
+        return res.status(500).json({
+            mensagem: "Não foi possível enviar a mensagem. Tente novamente mais tarde.",
+        });
+    }
+});
+
+module.exports = router;

@@ -1,0 +1,388 @@
+
+.perfil-artista-pagina {
+    min-height: calc(100vh - 172px);
+    box-sizing: border-box;
+    padding: 48px 24px;
+    color: #f8fafc;
+    background:
+        radial-gradient(ellipse at top left, rgba(124, 58, 237, 0.13), transparent 42%),
+        #0b0d17;
+}
+
+.perfil-artista-container {
+    width: 100%;
+    max-width: 950px;
+    margin: 0 auto;
+}
+
+.perfil-artista-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.perfil-artista-etiqueta {
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.perfil-artista-header h1 {
+    margin: 10px 0;
+    font-size: clamp(28px, 4vw, 38px);
+    letter-spacing: -1px;
+}
+
+.perfil-artista-header p,
+.perfil-artista-titulo-secao p,
+.perfil-artista-foto-info p,
+.perfil-artista-rodape p {
+    margin: 6px 0 0;
+    color: #a1a1b5;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.perfil-artista-botao-secundario,
+.perfil-artista-botao-salvar,
+.perfil-artista-botao-sair,
+.perfil-artista-upload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 10px;
+    padding: 12px 17px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.perfil-artista-botao-secundario {
+    flex-shrink: 0;
+    color: #e9ddff;
+    background: #211a35;
+    border: 1px solid #42305f;
+}
+
+.perfil-artista-botao-secundario:hover {
+    background: #302247;
+    border-color: #8b5cf6;
+}
+
+.perfil-artista-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.perfil-artista-secao {
+    padding: 28px;
+    border: 1px solid #2c2b40;
+    border-radius: 17px;
+    background: rgba(24, 24, 39, 0.94);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+}
+
+.perfil-artista-titulo-secao {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 26px;
+}
+
+.perfil-artista-numero {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    color: #c4b5fd;
+    background: #302047;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.perfil-artista-titulo-secao h2 {
+    margin: 2px 0 0;
+    font-size: 19px;
+}
+
+.perfil-artista-foto-area {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 20px;
+    border: 1px solid #343149;
+    border-radius: 14px;
+    background: #121220;
+}
+
+.perfil-artista-avatar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 112px;
+    height: 112px;
+    overflow: hidden;
+    border: 3px solid #8b5cf6;
+    border-radius: 50%;
+    color: #c4b5fd;
+    background: linear-gradient(135deg, #302047, #164e63);
+    font-size: 42px;
+}
+
+.perfil-artista-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.perfil-artista-foto-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+    min-width: 0;
+}
+
+.perfil-artista-foto-info strong {
+    overflow-wrap: anywhere;
+}
+
+.perfil-artista-upload {
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+    color: #fff;
+    background: #6d28d9;
+}
+
+.perfil-artista-upload:hover {
+    background: #7c3aed;
+}
+
+.perfil-artista-upload input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.perfil-artista-remover-preview {
+    padding: 0;
+    border: 0;
+    color: #c4b5fd;
+    background: transparent;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.perfil-artista-remover-preview:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.perfil-artista-grade {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.perfil-artista-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-width: 0;
+}
+
+.perfil-artista-campo-completo {
+    grid-column: 1 / -1;
+}
+
+.perfil-artista-campo label {
+    color: #e5e7eb;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.perfil-artista-campo input,
+.perfil-artista-campo textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 13px 14px;
+    border: 1px solid #38364e;
+    border-radius: 10px;
+    outline: none;
+    color: #f8fafc;
+    background: #11111e;
+    font: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.perfil-artista-campo input {
+    min-height: 46px;
+}
+
+.perfil-artista-campo textarea {
+    min-height: 125px;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.perfil-artista-campo input::placeholder,
+.perfil-artista-campo textarea::placeholder {
+    color: #77768d;
+}
+
+.perfil-artista-campo input:focus,
+.perfil-artista-campo textarea:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.14);
+}
+
+.perfil-artista-campo small {
+    color: #9998ad;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.perfil-artista-mensagem,
+.perfil-artista-erro {
+    margin: 0;
+    padding: 13px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.perfil-artista-mensagem {
+    border: 1px solid #166534;
+    color: #bbf7d0;
+    background: rgba(22, 101, 52, 0.18);
+}
+
+.perfil-artista-erro {
+    border: 1px solid #7f1d1d;
+    color: #fecaca;
+    background: rgba(127, 29, 29, 0.2);
+}
+
+.perfil-artista-acoes {
+    display: flex;
+    justify-content: flex-end;
+    padding: 5px 0;
+}
+
+.perfil-artista-botao-salvar {
+    min-width: 190px;
+    padding: 14px 22px;
+    color: white;
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 5px 18px rgba(124, 58, 237, 0.2);
+}
+
+.perfil-artista-botao-salvar:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.3);
+}
+
+.perfil-artista-botao-salvar:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.perfil-artista-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 34px;
+    padding: 22px 0 0;
+    border-top: 1px solid #29283b;
+}
+
+.perfil-artista-rodape strong {
+    font-size: 14px;
+}
+
+.perfil-artista-botao-sair {
+    flex-shrink: 0;
+    border: 1px solid #71333d;
+    color: #fca5a5;
+    background: #27151e;
+}
+
+.perfil-artista-botao-sair:hover {
+    border-color: #ef4444;
+    background: #3b1723;
+}
+
+.perfil-artista-status {
+    padding: 50px 0;
+    color: #c4b5fd;
+    text-align: center;
+}
+
+@media (max-width: 650px) {
+    .perfil-artista-pagina {
+        padding: 30px 15px;
+    }
+
+    .perfil-artista-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .perfil-artista-secao {
+        padding: 21px 17px;
+    }
+
+    .perfil-artista-grade {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .perfil-artista-campo-completo {
+        grid-column: auto;
+    }
+
+    .perfil-artista-foto-area {
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .perfil-artista-foto-info {
+        align-items: center;
+    }
+
+    .perfil-artista-acoes {
+        justify-content: stretch;
+    }
+
+    .perfil-artista-botao-salvar {
+        width: 100%;
+    }
+
+    .perfil-artista-rodape {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .perfil-artista-botao-sair {
+        width: 100%;
+    }
+}

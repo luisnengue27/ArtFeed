@@ -1,36 +1,29 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../services/api";
+import "./Login.css";
 
 const LoginCliente = () => {
-
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
-
     const [erro, setErro] = useState("");
     const [mensagem, setMensagem] = useState("");
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         setErro("");
         setMensagem("");
 
         try {
-
-           const resposta = await apiFetch(
-    "/api/clientes/login",
+            const resposta = await apiFetch(
+                "/api/clientes/login",
                 {
                     method: "POST",
-
                     headers: {
                         "Content-Type": "application/json"
                     },
-
-                    body: JSON.stringify({
-                        email,
-                        senha
-                    })
+                    body: JSON.stringify({ email, senha })
                 }
             );
 
@@ -41,87 +34,108 @@ const LoginCliente = () => {
                 return;
             }
 
-            // Salva o token do cliente
-           localStorage.removeItem("token");
-localStorage.removeItem("artista");
+            localStorage.removeItem("token");
+            localStorage.removeItem("artista");
 
-localStorage.setItem("tokenCliente", dados.token);
-localStorage.setItem("cliente", JSON.stringify(dados.cliente));
-window.dispatchEvent(new Event("loginStatusChanged"));
+            localStorage.setItem("tokenCliente", dados.token);
+            localStorage.setItem(
+                "cliente",
+                JSON.stringify(dados.cliente)
+            );
+
+            window.dispatchEvent(
+                new Event("loginStatusChanged")
+            );
 
             setMensagem(dados.mensagem);
 
-            console.log(
-                "Cliente logado:",
-                dados.cliente
-            );
-
+            console.log("Cliente logado:", dados.cliente);
         } catch (erro) {
-
             console.error(erro);
-
-            setErro(
-                "Não foi possível conectar com o servidor."
-            );
+            setErro("Não foi possível conectar com o servidor.");
         }
     };
 
     return (
-        <div>
+        <main className="login-pagina">
+            <Link to="/" className="login-logo">
+                <span>✦</span>
+                ArtFeed
+            </Link>
 
-            <h1>Login de Cliente</h1>
-
-            <form onSubmit={handleSubmit}>
-
-                <div>
-                    <label>E-mail</label>
-
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) =>
-                            setEmail(e.target.value)
-                        }
-                        required
-                    />
-                </div>
-
-                <div>
-                    <label>Senha</label>
-
-                    <input
-                        type="password"
-                        value={senha}
-                        onChange={(e) =>
-                            setSenha(e.target.value)
-                        }
-                        required
-                    />
-                </div>
-
-                <button type="submit">
-                    Entrar
-                </button>
-
-            </form>
-
-            <p>
-                Não possui uma conta?{" "}
-
-                <Link to="/cadastro/cliente">
-                    Cadastre-se como cliente
-                </Link>
+            <p className="login-subtitulo">
+                Descubra artistas e encontre novas inspirações.
             </p>
 
-            {mensagem && (
-                <p>{mensagem}</p>
-            )}
+            <section className="login-card">
+                <h1>Login de Cliente</h1>
 
-            {erro && (
-                <p>{erro}</p>
-            )}
+                <p className="login-descricao">
+                    Entre para explorar portfólios e se conectar
+                    com artistas.
+                </p>
 
-        </div>
+                <form className="login-form" onSubmit={handleSubmit}>
+                    <div>
+                        <label htmlFor="login-cliente-email">
+                            E-mail
+                        </label>
+
+                        <input
+                            id="login-cliente-email"
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            autoComplete="email"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="login-cliente-senha">
+                            Senha
+                        </label>
+
+                        <input
+                            id="login-cliente-senha"
+                            type="password"
+                            value={senha}
+                            onChange={(e) => setSenha(e.target.value)}
+                            autoComplete="current-password"
+                            required
+                        />
+                    </div>
+
+                    <button type="submit">Entrar</button>
+                </form>
+
+                {mensagem && (
+                    <p className="login-mensagem">{mensagem}</p>
+                )}
+
+                {erro && (
+                    <p className="login-erro">{erro}</p>
+                )}
+
+                <p className="login-cadastro">
+                    Ainda não tem uma conta?{" "}
+                    <Link to="/cadastro/cliente">
+                        Cadastre-se como cliente
+                    </Link>
+                </p>
+
+                <p className="login-alternar">
+                    É artista?{" "}
+                    <Link to="/login">
+                        Entrar como artista
+                    </Link>
+                </p>
+            </section>
+
+            <Link to="/cadastro" className="login-voltar">
+                ← Voltar para opções de cadastro
+            </Link>
+        </main>
     );
 };
 
