@@ -7,7 +7,14 @@ const fs = require("fs");
 const contatoRoutes = require("./routes/contato");
 const express = require("express");
 const cors = require("cors");
+app.use(cors({
+    origin: "https://artfeed-frontend.onrender.com",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204
+}));
 
+app.use(express.json());
 const app = express();
 console.log("EMAIL_USER configurado:", Boolean(process.env.EMAIL_USER));
 console.log(
