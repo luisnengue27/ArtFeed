@@ -13,9 +13,12 @@ const transporter = nodemailer.createTransport({
         user: emailUsuario,
         pass: senhaApp,
     },
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
 });
-
 router.post("/", async (req, res) => {
+    console.log("[CONTATO] Requisição recebida");
     try {
         const { nome, email, assunto, mensagem } = req.body || {};
 
@@ -62,7 +65,7 @@ router.post("/", async (req, res) => {
                 mensagem: "Verifique os dados preenchidos.",
             });
         }
-
+console.log("[CONTATO] Iniciando envio pelo Gmail");
         await transporter.sendMail({
             from: `"ArtFeed - Contato" <${emailUsuario}>`,
             to: "artfeed.fieb@gmail.com",
@@ -79,17 +82,22 @@ router.post("/", async (req, res) => {
                 mensagemLimpa,
             ].join("\n"),
         });
-
+console.log("[CONTATO] E-mail enviado com sucesso");
         return res.status(200).json({
             mensagem: "Mensagem enviada com sucesso!",
         });
     } catch (erro) {
-        console.error("Erro ao enviar mensagem de contato:", erro.message);
+    console.error("[CONTATO] Falha no envio:", {
+        message: erro.message,
+        code: erro.code,
+        command: erro.command,
+        responseCode: erro.responseCode,
+    });
 
-        return res.status(500).json({
-            mensagem: "Não foi possível enviar a mensagem. Tente novamente mais tarde.",
-        });
-    }
+    return res.status(500).json({
+        mensagem: "Não foi possível enviar a mensagem. Tente novamente mais tarde.",
+    });
+}
 });
 
 module.exports = router;
