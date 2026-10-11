@@ -63,7 +63,7 @@ console.log("[CONTATO] Iniciando envio pela API Resend");
 
 const { data, error } = await resend.emails.send({
     from: "ArtFeed <onboarding@resend.dev>",
-    to: ["artfeed.fieb@gmail.com"],
+    to: ["rm99465@estudante.fieb.edu.br"],
     replyTo: emailLimpo,
     subject: `[ArtFeed] ${assuntoLimpo}`,
     text: [
