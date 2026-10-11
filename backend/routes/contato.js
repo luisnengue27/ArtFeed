@@ -1,113 +1,79 @@
 
 const express = require("express");
-
-const { Resend } = require("resend");
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 const router = express.Router();
 
-const emailUsuario = process.env.EMAIL_USER;
-const senhaApp = process.env.EMAIL_APP_PASSWORD;
+const sql = require("mssql");
+const { poolPromise } = require("../db");
 
-const nodemailer = require("nodemailer");
 router.post("/", async (req, res) => {
     console.log("[CONTATO] Requisição recebida");
-    try {
-        const { nome, email, assunto, mensagem } = req.body || {};
 
-        if (!nome || !email || !assunto || !mensagem) {
-            return res.status(400).json({
-                mensagem: "Preencha todos os campos.",
-            });
-        }
+    const { nome, email, assunto, mensagem } = req.body || {};
 
-        if (
-            typeof nome !== "string" ||
-            typeof email !== "string" ||
-            typeof assunto !== "string" ||
-            typeof mensagem !== "string"
-        ) {
-            return res.status(400).json({
-                mensagem: "Os dados enviados são inválidos.",
-            });
-        }
+    const nomeLimpo = typeof nome === "string" ? nome.trim() : "";
+    const emailLimpo = typeof email === "string" ? email.trim() : "";
+    const assuntoLimpo = typeof assunto === "string" ? assunto.trim() : "";
+    const mensagemLimpa =
+        typeof mensagem === "string" ? mensagem.trim() : "";
 
-        const nomeLimpo = nome.trim();
-        const emailLimpo = email.trim();
-        const assuntoLimpo = assunto.trim();
-        const mensagemLimpa = mensagem.trim();
-
-        const assuntosPermitidos = [
-            "Duvida",
-            "Problema tecnico",
-            "Sugestao",
-            "Denuncia",
-            "Outro",
-        ];
-
-        if (
-            !nomeLimpo ||
-            nomeLimpo.length > 100 ||
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo) ||
-            emailLimpo.length > 254 ||
-            !assuntosPermitidos.includes(assuntoLimpo) ||
-            !mensagemLimpa ||
-            mensagemLimpa.length > 3000
-        ) {
-            return res.status(400).json({
-                mensagem: "Verifique os dados preenchidos.",
-            });
-        }
-
-console.log("[CONTATO] Iniciando envio pela API Resend");
-
-const { data, error } = await resend.emails.send({
-    from: "ArtFeed <onboarding@resend.dev>",
-    to: ["rm99465@estudante.fieb.edu.br"],
-    replyTo: emailLimpo,
-    subject: `[ArtFeed] ${assuntoLimpo}`,
-    text: [
-        "Nova mensagem recebida pelo Fale Conosco do ArtFeed.",
-        "",
-        `Nome: ${nomeLimpo}`,
-        `E-mail para resposta: ${emailLimpo}`,
-        `Assunto: ${assuntoLimpo}`,
-        "",
-        "Mensagem:",
-        mensagemLimpa,
-    ].join("\n"),
-});
-
-if (error) {
-    console.error("[CONTATO] Erro da API Resend:", error);
-
-    return res.status(502).json({
-        mensagem: "O serviço de e-mail não conseguiu enviar sua mensagem.",
-    });
-}
-
-console.log("[CONTATO] E-mail aceito pelo Resend:", data.id);
-
-return res.status(200).json({
-    mensagem: "Mensagem enviada com sucesso!",
-});
-
-console.log("[CONTATO] E-mail enviado com sucesso");
-        return res.status(200).json({
-            mensagem: "Mensagem enviada com sucesso!",
+    // Validar campos obrigatórios
+    if (!nomeLimpo || !emailLimpo || !assuntoLimpo || !mensagemLimpa) {
+        return res.status(400).json({
+            mensagem: "Preencha todos os campos do formulário."
         });
-    } catch (erro) {
-    console.error("[CONTATO] Falha no envio:", {
-        message: erro.message,
-        code: erro.code,
-        command: erro.command,
-        responseCode: erro.responseCode,
-    });
+    }
 
-    return res.status(500).json({
-        mensagem: "Não foi possível enviar a mensagem. Tente novamente mais tarde.",
-    });
-}
+    // Validar limites dos campos
+    if (
+        nomeLimpo.length > 100 ||
+        emailLimpo.length > 254 ||
+        assuntoLimpo.length > 150 ||
+        mensagemLimpa.length > 10000
+    ) {
+        return res.status(400).json({
+            mensagem: "Um ou mais campos ultrapassaram o limite permitido."
+        });
+    }
+
+    // Validar formato básico do e-mail
+    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo);
+
+    if (!emailValido) {
+        return res.status(400).json({
+            mensagem: "Informe um endereço de e-mail válido."
+        });
+    }
+
+    try {
+        console.log("[CONTATO] Salvando mensagem no Azure SQL");
+
+        const pool = await poolPromise;
+
+        await pool.request()
+            .input("nome", sql.NVarChar(100), nomeLimpo)
+            .input("email", sql.NVarChar(254), emailLimpo)
+            .input("assunto", sql.NVarChar(150), assuntoLimpo)
+            .input("mensagem", sql.NVarChar(sql.MAX), mensagemLimpa)
+            .query(`
+                INSERT INTO dbo.MensagensContato
+                    (nome, email, assunto, mensagem)
+                VALUES
+                    (@nome, @email, @assunto, @mensagem)
+            `);
+
+        console.log("[CONTATO] Mensagem salva no Azure SQL");
+
+        return res.status(201).json({
+            mensagem: "Mensagem recebida com sucesso!"
+        });
+
+    } catch (erro) {
+        console.error("[CONTATO] Falha ao salvar no banco:", erro);
+
+        return res.status(500).json({
+            mensagem: "Não foi possível registrar sua mensagem. Tente novamente."
+        });
+    }
 });
 
 module.exports = router;
