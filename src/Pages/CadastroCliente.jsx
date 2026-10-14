@@ -1,11 +1,12 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { apiFetch } from "../services/api";
-import { Link } from "react-router-dom";
 import "./CadastroForm.css";
 
 const CadastroCliente = () => {
-const navigate = useNavigate();
+    const navigate = useNavigate();
+
     const [formulario, setFormulario] = useState({
         username: "",
         email: "",
@@ -17,10 +18,12 @@ const navigate = useNavigate();
     const [erro, setErro] = useState("");
 
     const handleChange = (e) => {
-        setFormulario({
-            ...formulario,
-            [e.target.name]: e.target.value
-        });
+        const { name, value } = e.target;
+
+        setFormulario((anterior) => ({
+            ...anterior,
+            [name]: value
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -35,16 +38,13 @@ const navigate = useNavigate();
         }
 
         try {
-
-         const resposta = await apiFetch(
-    "/api/clientes/cadastro",
+            const resposta = await apiFetch(
+                "/api/clientes/cadastro",
                 {
                     method: "POST",
-
                     headers: {
                         "Content-Type": "application/json"
                     },
-
                     body: JSON.stringify({
                         username: formulario.username,
                         email: formulario.email,
@@ -56,55 +56,99 @@ const navigate = useNavigate();
             const dados = await resposta.json();
 
             if (!resposta.ok) {
-                setErro(dados.erro);
+                setErro(dados.erro || "Não foi possível criar a conta.");
                 return;
-            }   
+            }
 
-    navigate("/login/cliente");
-
-            setMensagem(dados.mensagem);
-
-            setFormulario({
-                username: "",
-                email: "",
-                senha: "",
-                confirmarSenha: ""
-            });
-
+            navigate("/login/cliente");
         } catch (erro) {
-
             console.error(erro);
-
-            setErro(
-                "Não foi possível conectar com o servidor."
-            );
+            setErro("Não foi possível conectar com o servidor.");
         }
     };
 
-  return (
-    <div className="cadastro-form-pagina">
-        <h1>Cadastro de Artista</h1>
+    return (
+        <div className="cadastro-form-pagina">
+            <h1>Cadastro de Cliente</h1>
 
-        <form className="cadastro-form" onSubmit={handleSubmit}>
-            {/* Mantenha aqui os quatro campos existentes */}
-            {/* Nome de usuário, e-mail, senha e confirmar senha */}
+            <form
+                className="cadastro-form"
+                onSubmit={handleSubmit}
+            >
+                <label htmlFor="username">
+                    Nome de usuário
+                </label>
+                <input
+                    id="username"
+                    type="text"
+                    name="username"
+                    placeholder="Escolha um nome de usuário"
+                    value={formulario.username}
+                    onChange={handleChange}
+                    autoComplete="username"
+                    required
+                />
 
-            {/* Mantenha o botão Criar conta */}
-        </form>
+                <label htmlFor="email">
+                    E-mail
+                </label>
+                <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    placeholder="Digite o seu e-mail"
+                    value={formulario.email}
+                    onChange={handleChange}
+                    autoComplete="email"
+                    required
+                />
 
-        {mensagem && (
-            <p className="cadastro-mensagem">{mensagem}</p>
-        )}
+                <label htmlFor="senha">
+                    Senha
+                </label>
+                <input
+                    id="senha"
+                    type="password"
+                    name="senha"
+                    placeholder="Crie uma senha"
+                    value={formulario.senha}
+                    onChange={handleChange}
+                    autoComplete="new-password"
+                    required
+                />
 
-        {erro && (
-            <p className="cadastro-erro">{erro}</p>
-        )}
+                <label htmlFor="confirmarSenha">
+                    Confirmar senha
+                </label>
+                <input
+                    id="confirmarSenha"
+                    type="password"
+                    name="confirmarSenha"
+                    placeholder="Digite a senha novamente"
+                    value={formulario.confirmarSenha}
+                    onChange={handleChange}
+                    autoComplete="new-password"
+                    required
+                />
 
-        <Link to="/cadastro" className="cadastro-voltar">
-            ← Voltar para escolha de cadastro
-        </Link>
-    </div>
-);
+                <button type="submit">
+                    Criar conta
+                </button>
+            </form>
+
+            {mensagem && (
+                <p className="cadastro-mensagem">{mensagem}</p>
+            )}
+
+            {erro && (
+                <p className="cadastro-erro">{erro}</p>
+            )}
+
+            <Link to="/cadastro" className="cadastro-voltar">
+                ← Voltar para escolha de cadastro
+            </Link>
+        </div>
+    );
 };
 
 export default CadastroCliente;
