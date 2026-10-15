@@ -140,7 +140,7 @@ const PerfilPublicoCliente = () => {
             </button>
 
             <section className={styles.perfil}>
-           ```jsx
+          
 <img
     className={styles.foto}
     src={cliente.foto || "/avatar-padrao.png"}
@@ -150,7 +150,7 @@ const PerfilPublicoCliente = () => {
         e.currentTarget.src = "/avatar-padrao.png";
     }}
 />
-```
+
 
 
                 <h1>{cliente.username}</h1>

@@ -47,6 +47,40 @@ const uploadParaCloudinary = (buffer) => {
     });
 };
 
+async function existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipoUsuario,
+    outroId,
+    tipoOutro
+) {
+    const resultado = await pool.request()
+        .input("usuarioId", Number(usuarioId))
+        .input("tipoUsuario", tipoUsuario)
+        .input("outroId", Number(outroId))
+        .input("tipoOutro", tipoOutro)
+        .query(`
+            SELECT TOP 1 id
+            FROM dbo.ArtistasBloqueados
+            WHERE
+                (
+                    usuario_id = @usuarioId
+                    AND usuario_tipo = @tipoUsuario
+                    AND @tipoOutro = 'artista'
+                    AND artista_id = @outroId
+                )
+                OR
+                (
+                    @tipoUsuario = 'artista'
+                    AND usuario_id = @outroId
+                    AND usuario_tipo = @tipoOutro
+                    AND artista_id = @usuarioId
+                )
+        `);
+
+    return resultado.recordset.length > 0;
+}
+
 // ==========================================
 // CRIAR OU ENCONTRAR UMA CONVERSA
 // ==========================================
@@ -64,9 +98,7 @@ router.post("/conversa", verificarToken, async (req, res) => {
         // ARTISTA INICIANDO CONVERSA
         // ==========================================
         if (tipo === "artista") {
-console.log("CHAT ARTISTA");
-console.log("usuarioId:", usuarioId);
-console.log("artista_id recebido:", artista_id);
+
             if (!artista_id) {
                 return res.status(400).json({
                     erro: "artista_id é obrigatório"
@@ -76,7 +108,19 @@ console.log("artista_id recebido:", artista_id);
 
             // Artista conversando com outro artista
             if (artista_id != usuarioId) {
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(artista_id),
+    "artista"
+);
 
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Não é possível conversar devido a um bloqueio entre as contas."
+    });
+}
                 const existente = await pool.request()
                     .input("artista_id", usuarioId)
                     .input("artista_destino_id", artista_id)
@@ -138,7 +182,19 @@ console.log("artista_id recebido:", artista_id);
                     erro: "cliente_id é obrigatório"
                 });
             }
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(cliente_id),
+    "cliente"
+);
 
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Não é possível conversar devido a um bloqueio entre as contas."
+    });
+}
 
             const existente = await pool.request()
                 .input("artista_id", usuarioId)
@@ -191,15 +247,25 @@ console.log("artista_id recebido:", artista_id);
         // ==========================================
 
         if (tipo === "cliente") {
-console.log("CHAT CLIENTE");
-console.log("usuarioId:", usuarioId);
-console.log("artista_id recebido:", artista_id);
+
             if (!artista_id) {
                 return res.status(400).json({
                     erro: "artista_id é obrigatório"
                 });
             }
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(artista_id),
+    "artista"
+);
 
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Não é possível conversar devido a um bloqueio entre as contas."
+    });
+}
 
             const existente = await pool.request()
                 .input("artista_id", artista_id)
@@ -318,7 +384,35 @@ router.get("/conversa/:id/mensagens", verificarToken, async (req, res) => {
                 erro: "Você não pertence a esta conversa"
             });
         }
+const outroId =
+    tipo === "cliente"
+        ? dados.artista_id
+        : dados.cliente_id !== null
+            ? dados.cliente_id
+            : (
+                Number(dados.artista_id) === Number(usuarioId)
+                    ? dados.artista_destino_id
+                    : dados.artista_id
+            );
 
+const outroTipo =
+    tipo === "cliente" || dados.cliente_id !== null
+        ? (tipo === "cliente" ? "artista" : "cliente")
+        : "artista";
+
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(outroId),
+    outroTipo
+);
+
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Não é possível enviar mensagens devido a um bloqueio entre as contas."
+    });
+}
         // Busca as mensagens e o username de cada remetente
         const mensagens = await pool.request()
             .input("conversa_id", conversaId)
@@ -418,19 +512,19 @@ router.post("/conversa/:id/mensagens", verificarToken, async (req, res) => {
 
 
         // Verifica se o usuário pertence à conversa
-        const autorizado =
-            (
-                tipo === "artista" &&
-                (
-                    dados.artista_id === usuarioId ||
-                    dados.artista_destino_id === usuarioId
-                )
-            )
-            ||
-            (
-                tipo === "cliente" &&
-                dados.cliente_id === usuarioId
-            );
+       
+const autorizado =
+    (
+        tipo === "artista" &&
+        (
+            Number(dados.artista_id) === Number(usuarioId) ||
+            Number(dados.artista_destino_id) === Number(usuarioId)
+        )
+    ) ||
+    (
+        tipo === "cliente" &&
+        Number(dados.cliente_id) === Number(usuarioId)
+    );
 
 
         if (!autorizado) {
@@ -439,7 +533,35 @@ router.post("/conversa/:id/mensagens", verificarToken, async (req, res) => {
                 erro: "Você não pertence a esta conversa"
             });
         }
+const outroId =
+    tipo === "cliente"
+        ? dados.artista_id
+        : dados.cliente_id !== null
+            ? dados.cliente_id
+            : (
+                Number(dados.artista_id) === Number(usuarioId)
+                    ? dados.artista_destino_id
+                    : dados.artista_id
+            );
 
+const outroTipo =
+    tipo === "cliente" || dados.cliente_id !== null
+        ? (tipo === "cliente" ? "artista" : "cliente")
+        : "artista";
+
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(outroId),
+    outroTipo
+);
+
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Não é possível enviar mensagens devido a um bloqueio entre as contas."
+    });
+}
 
         const mensagem = await pool.request()
             .input("conversa_id", conversaId)
@@ -521,10 +643,17 @@ router.get("/conversas", verificarToken, async (req, res) => {
                         WHERE conversa_id = c.id
                         ORDER BY data_envio DESC
                     ) m
-                    WHERE c.cliente_id = @cliente_id
-                    ORDER BY
-                        m.data_envio DESC,
-                        c.data_criacao DESC
+             WHERE c.cliente_id = @cliente_id
+  AND NOT EXISTS (
+      SELECT 1
+      FROM dbo.ArtistasBloqueados b
+      WHERE b.usuario_id = @cliente_id
+        AND b.usuario_tipo = 'cliente'
+        AND b.artista_id = c.artista_id
+  )
+ORDER BY
+    m.data_envio DESC,
+    c.data_criacao DESC
                 `);
 
             return res.json(resultado.recordset);
@@ -599,13 +728,50 @@ router.get("/conversas", verificarToken, async (req, res) => {
                         ORDER BY data_envio DESC
                     ) m
 
-                    WHERE
-                        c.artista_id = @artista_id
-                        OR c.artista_destino_id = @artista_id
+WHERE
+    (
+        c.artista_id = @artista_id
+        OR c.artista_destino_id = @artista_id
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM dbo.ArtistasBloqueados b
+        WHERE
+            (
+                c.cliente_id IS NULL
+                AND b.usuario_tipo = 'artista'
+                AND (
+                    (
+                        b.usuario_id = @artista_id
+                        AND b.artista_id = CASE
+                            WHEN c.artista_id = @artista_id
+                                THEN c.artista_destino_id
+                            ELSE c.artista_id
+                        END
+                    )
+                    OR
+                    (
+                        b.usuario_id = CASE
+                            WHEN c.artista_id = @artista_id
+                                THEN c.artista_destino_id
+                            ELSE c.artista_id
+                        END
+                        AND b.artista_id = @artista_id
+                    )
+                )
+            )
+            OR
+            (
+                c.cliente_id IS NOT NULL
+                AND b.usuario_tipo = 'cliente'
+                AND b.usuario_id = c.cliente_id
+                AND b.artista_id = @artista_id
+            )
+    )
+ORDER BY
+    m.data_envio DESC,
+    c.data_criacao DESC
 
-                    ORDER BY
-                        m.data_envio DESC,
-                        c.data_criacao DESC
                 `);
 
             return res.json(resultado.recordset);
@@ -660,25 +826,55 @@ router.post(
 
             const dados = conversa.recordset[0];
 
-            const autorizado =
-                (
-                    tipo === "artista" &&
-                    (
-                        dados.artista_id === usuarioId ||
-                        dados.artista_destino_id === usuarioId
-                    )
-                ) ||
-                (
-                    tipo === "cliente" &&
-                    dados.cliente_id === usuarioId
-                );
+     
+const autorizado =
+    (
+        tipo === "artista" &&
+        (
+            Number(dados.artista_id) === Number(usuarioId) ||
+            Number(dados.artista_destino_id) === Number(usuarioId)
+        )
+    ) ||
+    (
+        tipo === "cliente" &&
+        Number(dados.cliente_id) === Number(usuarioId)
+    );
+
 
             if (!autorizado) {
                 return res.status(403).json({
                     erro: "Você não pertence a esta conversa."
                 });
             }
+const outroId =
+    tipo === "cliente"
+        ? dados.artista_id
+        : dados.cliente_id !== null
+            ? dados.cliente_id
+            : (
+                Number(dados.artista_id) === Number(usuarioId)
+                    ? dados.artista_destino_id
+                    : dados.artista_id
+            );
 
+const outroTipo =
+    tipo === "cliente" || dados.cliente_id !== null
+        ? (tipo === "cliente" ? "artista" : "cliente")
+        : "artista";
+
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(outroId),
+    outroTipo
+);
+
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Não é possível enviar mensagens devido a um bloqueio entre as contas."
+    });
+}
             const resultado = await uploadParaCloudinary(
                 req.file.buffer
             );
@@ -787,6 +983,36 @@ WHERE c.id = @id
                 erro: "Você não pertence a esta conversa."
             });
         }
+
+const outroId =
+    tipo === "cliente"
+        ? conversa.artista_id
+        : conversa.cliente_id !== null
+            ? conversa.cliente_id
+            : (
+                Number(conversa.artista_id) === usuarioId
+                    ? conversa.artista_destino_id
+                    : conversa.artista_id
+            );
+
+const outroTipo =
+    tipo === "cliente" || conversa.cliente_id !== null
+        ? (tipo === "cliente" ? "artista" : "cliente")
+        : "artista";
+
+const bloqueio = await existeBloqueioEntreUsuarios(
+    pool,
+    usuarioId,
+    tipo,
+    Number(outroId),
+    outroTipo
+);
+
+if (bloqueio) {
+    return res.status(403).json({
+        erro: "Esta conversa não está disponível devido a um bloqueio."
+    });
+}
 
         let outroUsuario;
 

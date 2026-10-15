@@ -335,7 +335,45 @@
     color: #c4b5fd;
     text-align: center;
 }
+.perfil-artista-tags-ajuda {
+    margin: 6px 0 12px;
+    color: #9b8caf;
+    font-size: 13px;
+}
 
+.perfil-artista-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.perfil-artista-tag {
+    padding: 9px 13px;
+    border: 1px solid #493365;
+    border-radius: 20px;
+    background: #171321;
+    color: #c9b8df;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.perfil-artista-tag:hover {
+    border-color: #a36af0;
+    background: #2b1e40;
+}
+
+.perfil-artista-tag.selecionada {
+    border-color: #a36af0;
+    background: #47266b;
+    color: #ffffff;
+}
+
+.perfil-artista-tag:focus-visible {
+    outline: 2px solid #d4b5ff;
+    outline-offset: 3px;
+}
 @media (max-width: 650px) {
     .perfil-artista-pagina {
         padding: 30px 15px;

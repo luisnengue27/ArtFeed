@@ -38,6 +38,12 @@ import Chat from "../Pages/Chat";
 
 import PerfilPublicoCliente from "../Pages/PerfilPublicoCliente";
 
+import ArtistasBloqueados from "../Pages/ArtistasBloqueados";
+
+import LoginAdmin from "../Pages/LoginAdmin";
+
+import Admin from "../Pages/Admin";
+
 const AppRoutes = () => {
     return (
         <BrowserRouter>
@@ -115,6 +121,16 @@ const AppRoutes = () => {
     path="/chat/conversa/:conversaId"
     element={<Chat />}
 />
+<Route
+    path="/artistas-bloqueados"
+    element={<ArtistasBloqueados />}
+/>
+
+<Route
+    path="/login/admin"
+    element={<LoginAdmin />}
+/>
+<Route path="/admin" element={<Admin />} />
 
                 </Route>
 

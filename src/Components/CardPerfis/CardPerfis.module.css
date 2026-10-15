@@ -164,3 +164,276 @@
     background: #241a48;
     color: white;
 }
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.avaliar {
+    padding: 0 12px;
+    min-height: 38px;
+    border: 1px solid #8c4de8;
+    border-radius: 11px;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+}
+
+.avaliar:hover {
+    background: #241a48;
+}
+
+.formulario-avaliacao {
+    margin-top: 12px;
+    padding: 12px;
+    background: #19152a;
+    border: 1px solid #30205a;
+    border-radius: 12px;
+}
+
+.formulario-avaliacao p {
+    margin: 0 0 8px;
+    color: #d8c9f5;
+    font-size: 13px;
+}
+
+.estrelas-selecao {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.estrelas-selecao button {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #ffc400;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+.enviar-avaliacao {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #8c4de8;
+    color: white;
+    cursor: pointer;
+}
+
+.enviar-avaliacao:disabled,
+.estrelas-selecao button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mensagem-avaliacao {
+    color: #cbb7f3;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.card-artista {
+    position: relative;
+}
+
+.card-topo {
+    position: relative;
+}
+
+.botao-info {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 28px;
+    line-height: 1;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.botao-info:hover {
+    background: rgba(140, 77, 232, 0.12);
+}
+
+.menu-moderacao {
+    position: absolute;
+    top: 38px;
+    right: 8px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 145px;
+    padding: 6px;
+    background: white;
+    border: 1px solid #e2d8ef;
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.menu-moderacao button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: white;
+    color: #292333;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menu-moderacao button:hover {
+    background: #f2eaff;
+}
+
+.menu-moderacao button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mensagem-moderacao {
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.fundo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.modal-denuncia {
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 24px;
+    background: white;
+    color: #292333;
+    border-radius: 14px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+}
+
+.modal-denuncia h3 {
+    margin: 0;
+}
+
+.modal-denuncia label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.modal-denuncia textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 10px;
+    border: 1px solid #cfc5dc;
+    border-radius: 8px;
+    font: inherit;
+}
+
+.modal-denuncia input[type="file"] {
+    max-width: 100%;
+    font-size: 13px;
+}
+
+.acoes-denuncia {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.acoes-denuncia button {
+    padding: 10px 14px;
+    border: 1px solid #8c4de8;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.acoes-denuncia button[type="button"] {
+    background: white;
+    color: #6b35b6;
+}
+
+.acoes-denuncia button[type="submit"] {
+    background: #8c4de8;
+    color: white;
+}
+
+.acoes-denuncia button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.fundo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.65);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.modal-denuncia {
+    position: relative;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+.fundo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 16px;
+    box-sizing: border-box;
+    overflow-y: auto;
+
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.modal-denuncia {
+    position: relative;
+    flex-shrink: 0;
+
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100vh - 32px);
+
+    overflow-y: auto;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    padding: 24px;
+    background: white;
+    color: #292333;
+    border-radius: 14px;
+
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25);
+}

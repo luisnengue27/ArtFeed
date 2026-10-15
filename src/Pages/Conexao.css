@@ -73,7 +73,10 @@
     font-size: 14px;
     cursor: pointer;
     transition: background 0.2s, transform 0.2s;
+    margin-right: 20px;
 }
+
+
 
 .card-conexao button:hover,
 .acesso-conversas button:hover {

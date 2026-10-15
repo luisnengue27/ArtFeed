@@ -3,7 +3,26 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { apiFetch } from "../services/api";
 import "./PerfilArtista.css";
-
+const TAGS_DISPONIVEIS = [
+    "Ilustração",
+    "Arte digital",
+    "Retrato",
+    "Personagens",
+    "Concept art",
+    "Pintura",
+    "Anime e mangá",
+    "Pixel art",
+    "Paisagem",
+    "Arte abstrata",
+    "Design gráfico",
+    "Quadrinhos",
+    "Fotografia",
+    "Escultura",
+    "3D",
+    "Tipografia",
+    "Fanart",
+    "Realismo"
+];
 const PerfilArtista = () => {
     const navigate = useNavigate();
 
@@ -129,7 +148,30 @@ const PerfilArtista = () => {
             [name]: value
         }));
     };
+const tagsSelecionadas = formulario.tags
+    .split(",")
+    .map(tag => tag.trim())
+    .filter(Boolean);
 
+const handleTagToggle = (tag) => {
+    setFormulario(prev => {
+        const atuais = prev.tags
+            .split(",")
+            .map(item => item.trim())
+            .filter(Boolean);
+
+        const jaSelecionada = atuais.includes(tag);
+
+        const atualizadas = jaSelecionada
+            ? atuais.filter(item => item !== tag)
+            : [...atuais, tag];
+
+        return {
+            ...prev,
+            tags: atualizadas.join(", ")
+        };
+    });
+};
     const handleFoto = (e) => {
         const arquivo = e.target.files?.[0];
 
@@ -268,6 +310,13 @@ window.dispatchEvent(new Event("loginStatusChanged"));
                         <span aria-hidden="true">▧</span>
                         Gerenciar portfólio
                     </button>
+                    <button
+    type="button"
+    className="perfil-artista-botao-secundario"
+    onClick={() => navigate("/artistas-bloqueados")}
+>
+    Artistas bloqueados
+</button>
                 </header>
 
                 <form onSubmit={handleSubmit} className="perfil-artista-form">
@@ -441,15 +490,41 @@ window.dispatchEvent(new Event("loginStatusChanged"));
 
                             <div className="perfil-artista-campo perfil-artista-campo-completo">
                                 <label htmlFor="tags">Tags do seu trabalho</label>
-                                <input
-                                    id="tags"
-                                    type="text"
-                                    name="tags"
-                                    value={formulario.tags}
-                                    onChange={handleChange}
-                                    placeholder="Retrato, Digital, Conceitual"
-                                    required
-                                />
+                            <div className="perfil-artista-campo perfil-artista-campo-completo">
+    <label>Tags do seu trabalho</label>
+
+    <p className="perfil-artista-tags-ajuda">
+        Selecione as opções que melhor representam seu estilo e suas técnicas.
+    </p>
+
+    <div className="perfil-artista-tags">
+        {TAGS_DISPONIVEIS.map(tag => {
+            const selecionada = tagsSelecionadas.includes(tag);
+
+            return (
+                <button
+                    key={tag}
+                    type="button"
+                    className={`perfil-artista-tag ${
+                        selecionada ? "selecionada" : ""
+                    }`}
+                    aria-pressed={selecionada}
+                    onClick={() => handleTagToggle(tag)}
+                >
+                    {selecionada ? "✓ " : "+ "}
+                    {tag}
+                </button>
+            );
+        })}
+    </div>
+
+    <small>
+        {tagsSelecionadas.length}{" "}
+        {tagsSelecionadas.length === 1
+            ? "tag selecionada"
+            : "tags selecionadas"}
+    </small>
+</div>
                                 <small>Separe cada tag com uma vírgula.</small>
                             </div>
 

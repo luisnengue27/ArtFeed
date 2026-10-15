@@ -106,7 +106,6 @@ const Conexao = () => {
     return (
         <main className="conexao">
             <h1>Conexões</h1>
-
             <p>Artistas que você segue</p>
 
             {carregando && <p>Carregando artistas...</p>}
@@ -171,6 +170,13 @@ const Conexao = () => {
                 >
                     Minhas conversas
                 </button>
+
+                <button className="nengue"
+    type="buttonn"
+    onClick={() => navigate("/artistas-bloqueados")}
+>
+    Artistas bloqueados
+</button>
             </section>
         </main>
     );

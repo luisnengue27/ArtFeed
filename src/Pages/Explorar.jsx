@@ -34,27 +34,46 @@ const imagensProvisorias = [
 const Explorar = () => {
   const [artes, setArtes] = useState([]);
 
-  useEffect(() => {
-    const buscarArtes = async () => {
-      try {
-        const resposta = await fetch(
-          `${API_URL}/api/artistas/artes`
-        );
 
-        if (!resposta.ok) {
-          throw new Error("Erro ao buscar artes");
+useEffect(() => {
+  let cancelado = false;
+
+  const buscarArtes = async () => {
+    try {
+      const token =
+        localStorage.getItem("tokenCliente") ||
+        localStorage.getItem("token");
+
+      const resposta = await fetch(
+        `${API_URL}/api/artistas/artes`,
+        {
+          headers: token
+            ? { Authorization: `Bearer ${token}` }
+            : {},
         }
+      );
 
-        const dados = await resposta.json();
-
-        setArtes(dados);
-      } catch (erro) {
-        console.error("Erro ao carregar artes:", erro);
+      if (!resposta.ok) {
+        throw new Error("Erro ao buscar artes");
       }
-    };
 
-    buscarArtes();
-  }, []);
+      const dados = await resposta.json();
+
+      if (!cancelado) {
+        setArtes(dados);
+      }
+    } catch (erro) {
+      console.error("Erro ao carregar artes:", erro);
+    }
+  };
+
+  buscarArtes();
+
+  return () => {
+    cancelado = true;
+  };
+}, []);
+
 
   // Enquanto ainda não houver artes no banco,
   // usamos imagens provisórias.

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import CardPerfis from "../Components/CardPerfis/CardPerfis";
@@ -5,69 +6,76 @@ import styles from "./Perfis.module.css";
 import { apiFetch } from "../services/api";
 
 const Perfis = () => {
-
     const [perfis, setPerfis] = useState([]);
     const [erro, setErro] = useState("");
+    const [carregando, setCarregando] = useState(true);
 
     const [searchParams] = useSearchParams();
-
     const termoBusca = searchParams.get("busca");
 
     useEffect(() => {
+        let cancelado = false;
 
         const buscarPerfis = async () => {
+            setCarregando(true);
+            setErro("");
 
             try {
-
-                setErro("");
-
                 let url = "/api/artistas";
 
-                // Se houver uma pesquisa
                 if (termoBusca && termoBusca.trim()) {
                     url = `/api/artistas/buscar?termo=${encodeURIComponent(
-                        termoBusca
+                        termoBusca.trim()
                     )}`;
                 }
 
-                const resposta = await apiFetch(url);
+                const token =
+                    localStorage.getItem("tokenCliente") ||
+                    localStorage.getItem("token");
 
+                const opcoes = token
+                    ? { headers: { Authorization: `Bearer ${token}` } }
+                    : {};
+
+                const resposta = await apiFetch(url, opcoes);
                 const dados = await resposta.json();
 
                 if (!resposta.ok) {
-                    setErro(
-                        dados.erro ||
-                        "Não foi possível realizar a pesquisa."
+                    throw new Error(
+                        dados.erro || "Não foi possível carregar os perfis."
                     );
-                    setPerfis([]);
-                    return;
                 }
 
-                setPerfis(dados);
-
+                if (!cancelado) {
+                    setPerfis(dados);
+                }
             } catch (erro) {
-
-                console.error(erro);
-
-                setErro(
-                    "Não foi possível conectar com o servidor."
-                );
-
-                setPerfis([]);
+                if (!cancelado) {
+                    console.error(erro);
+                    setErro(
+                        erro.message ||
+                        "Não foi possível conectar com o servidor."
+                    );
+                    setPerfis([]);
+                }
+            } finally {
+                if (!cancelado) {
+                    setCarregando(false);
+                }
             }
         };
 
         buscarPerfis();
 
+        return () => {
+            cancelado = true;
+        };
     }, [termoBusca]);
 
     return (
         <div className={styles.home}>
-
             <div className={styles["cards-container"]}>
-
                 {perfis.map((perfil) => (
-
                     <CardPerfis
                         key={perfil.id}
                         id={perfil.id}
@@ -77,28 +85,25 @@ const Perfis = () => {
                         descricao={perfil.descricao}
                         cidade={perfil.cidade}
                         imagem={perfil.foto}
+                        tags={perfil.tags}
                         seguidores={null}
-                        avaliacao="0"
-                        numavaliacao="(0)"
+                        avaliacao={Number(perfil.avaliacao || 0).toFixed(1)}
+                        numavaliacao={`(${perfil.numavaliacao || 0})`}
                     />
-
                 ))}
-
             </div>
 
-            {erro && (
-                <p>{erro}</p>
-            )}
+            {carregando && <p>Carregando perfis...</p>}
 
-            {!erro && perfis.length === 0 && (
+            {erro && <p role="alert">{erro}</p>}
+
+            {!carregando && !erro && perfis.length === 0 && (
                 <p>
                     {termoBusca
                         ? `Nenhum artista encontrado para "${termoBusca}".`
-                        : "Nenhum artista encontrado."
-                    }
+                        : "Nenhum artista encontrado."}
                 </p>
             )}
-
         </div>
     );
 };

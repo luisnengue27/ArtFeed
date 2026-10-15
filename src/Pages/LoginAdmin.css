@@ -1,0 +1,120 @@
+
+.login-admin-pagina {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: #f7f5fb;
+}
+
+.login-admin-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 36px;
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(40, 20, 70, 0.10);
+}
+
+.login-admin-logo {
+    display: block;
+    margin-bottom: 28px;
+    color: #6841c6;
+    font-size: 24px;
+    font-weight: 800;
+    text-decoration: none;
+    text-align: center;
+}
+
+.login-admin-icone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 18px;
+    border-radius: 16px;
+    background: #eee7ff;
+    color: #6841c6;
+    font-size: 28px;
+}
+
+.login-admin-card h1 {
+    margin: 0;
+    color: #292333;
+    font-size: 25px;
+    text-align: center;
+}
+
+.login-admin-descricao {
+    margin: 10px 0 28px;
+    color: #777080;
+    text-align: center;
+}
+
+.login-admin-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.login-admin-card label {
+    margin-top: 8px;
+    color: #383044;
+    font-weight: 600;
+}
+
+.login-admin-card input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 13px 14px;
+    border: 1px solid #dcd6e6;
+    border-radius: 10px;
+    outline: none;
+    font: inherit;
+}
+
+.login-admin-card input:focus {
+    border-color: #7950d8;
+    box-shadow: 0 0 0 3px rgba(121, 80, 216, 0.12);
+}
+
+.login-admin-card button {
+    margin-top: 14px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #6841c6;
+    color: white;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.login-admin-card button:hover {
+    background: #5431aa;
+}
+
+.login-admin-card button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.login-admin-erro {
+    margin: 8px 0 0;
+    color: #c62828;
+    font-size: 14px;
+}
+
+.login-admin-voltar {
+    display: block;
+    margin-top: 24px;
+    color: #6841c6;
+    text-align: center;
+    text-decoration: none;
+}
+
+.login-admin-voltar:hover {
+    text-decoration: underline;
+}

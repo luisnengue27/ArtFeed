@@ -5,7 +5,7 @@ const multer = require("multer");
 const verificarToken = require("../middleware/authMiddleware");
 const { sql, poolPromise } = require("../db");
 const { v2: cloudinary } = require("cloudinary");
-
+const authOpcional = require("../middleware/authOpcional");
 const router = express.Router();
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -402,35 +402,61 @@ router.get(
 // LISTAR TODOS OS PERFIS
 // ============================
 
-router.get("/", async (req, res) => {
+router.get("/", authOpcional, async (req, res) => {
     try {
         const pool = await poolPromise;
 
-        const resultado = await pool.request().query(`
-            SELECT
-                a.id,
-                a.username,
-                p.nome,
-                p.preco,
-                p.cidade,
-                p.profissao,
-                p.tags,
-                p.descricao,
-                p.foto_perfil AS foto
-            FROM Artistas a
-            INNER JOIN PerfilArtista p
-                ON a.id = p.artista_id
-        `);
+        const usuarioId = req.usuario?.id ?? null;
+        const tipoUsuario = req.usuario?.tipo ?? null;
+
+        const resultado = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipoUsuario", sql.VarChar(20), tipoUsuario)
+            .query(`
+                SELECT
+                    a.id,
+                    a.username,
+                    p.nome,
+                    p.preco,
+                    p.cidade,
+                    p.profissao,
+                    p.tags,
+                    p.descricao,
+                    p.foto_perfil AS foto,
+                    CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
+                    COALESCE(av.numavaliacao, 0) AS numavaliacao
+                FROM Artistas a
+                INNER JOIN PerfilArtista p
+                    ON a.id = p.artista_id
+                LEFT JOIN (
+                    SELECT
+                        artista_id,
+                        AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
+                        COUNT(*) AS numavaliacao
+                    FROM dbo.Avaliacoes
+                    GROUP BY artista_id
+                ) av
+                    ON av.artista_id = a.id
+                WHERE
+                    @usuarioId IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM dbo.ArtistasBloqueados b
+                        WHERE b.usuario_id = @usuarioId
+                          AND b.usuario_tipo = @tipoUsuario
+                          AND b.artista_id = a.id
+                    )
+            `);
 
         const perfis = resultado.recordset.map(perfil => ({
-    ...perfil,
-    foto: perfil.foto || null
-}));
+            ...perfil,
+            foto: perfil.foto || null
+        }));
 
         return res.status(200).json(perfis);
 
     } catch (erro) {
-        console.error("❌ Erro ao buscar perfis:", erro);
+        console.error("Erro ao buscar perfis:", erro);
 
         return res.status(500).json({
             erro: "Erro ao buscar os perfis dos artistas."
@@ -476,13 +502,22 @@ router.get("/meus-seguidos", verificarToken, async (req, res) => {
                     ON p.artista_id = a.id
                 WHERE
                     (
-                        @tipoUsuario = 'cliente'
-                        AND s.cliente_id = @usuarioId
+                        (
+                            @tipoUsuario = 'cliente'
+                            AND s.cliente_id = @usuarioId
+                        )
+                        OR
+                        (
+                            @tipoUsuario = 'artista'
+                            AND s.artista_seguidor_id = @usuarioId
+                        )
                     )
-                    OR
-                    (
-                        @tipoUsuario = 'artista'
-                        AND s.artista_seguidor_id = @usuarioId
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM dbo.ArtistasBloqueados b
+                        WHERE b.usuario_id = @usuarioId
+                          AND b.usuario_tipo = @tipoUsuario
+                          AND b.artista_id = a.id
                     )
                 ORDER BY a.username
             `);
@@ -501,7 +536,8 @@ router.get("/meus-seguidos", verificarToken, async (req, res) => {
 // PESQUISAR ARTISTAS
 // ===============================
 
-router.get("/buscar", async (req, res) => {
+
+router.get("/buscar", authOpcional, async (req, res) => {
     try {
         const { termo } = req.query;
 
@@ -513,8 +549,13 @@ router.get("/buscar", async (req, res) => {
 
         const pool = await poolPromise;
 
+        const usuarioId = req.usuario?.id ?? null;
+        const tipoUsuario = req.usuario?.tipo ?? null;
+
         const resultado = await pool.request()
             .input("termo", sql.NVarChar(100), `%${termo.trim()}%`)
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipoUsuario", sql.VarChar(20), tipoUsuario)
             .query(`
                 SELECT
                     a.id,
@@ -525,29 +566,52 @@ router.get("/buscar", async (req, res) => {
                     p.profissao,
                     p.tags,
                     p.descricao,
-                    p.foto_perfil AS foto
+                    p.foto_perfil AS foto,
+                    CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
+                    COALESCE(av.numavaliacao, 0) AS numavaliacao
                 FROM Artistas a
                 INNER JOIN PerfilArtista p
                     ON a.id = p.artista_id
-                WHERE
+                LEFT JOIN (
+                    SELECT
+                        artista_id,
+                        AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
+                        COUNT(*) AS numavaliacao
+                    FROM dbo.Avaliacoes
+                    GROUP BY artista_id
+                ) av
+                    ON av.artista_id = a.id
+                WHERE (
                     a.username LIKE @termo
                     OR p.nome LIKE @termo
                     OR p.profissao LIKE @termo
                     OR p.cidade LIKE @termo
                     OR p.tags LIKE @termo
-                ORDER BY p.nome
+                )
+                AND (
+                    @usuarioId IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM dbo.ArtistasBloqueados b
+                        WHERE b.usuario_id = @usuarioId
+                          AND b.usuario_tipo = @tipoUsuario
+                          AND b.artista_id = a.id
+                    )
+                )
             `);
 
         return res.status(200).json(resultado.recordset);
 
     } catch (erro) {
-        console.error("❌ Erro ao pesquisar artistas:", erro);
+        console.error("Erro ao pesquisar artistas:", erro);
 
         return res.status(500).json({
             erro: "Erro ao pesquisar artistas."
         });
     }
 });
+
+
 router.delete("/artes/:arteId", verificarToken, async (req, res) => {
     try {
         const artistaId = req.usuario.id;
@@ -746,6 +810,269 @@ router.post(
         }
     }
 );
+
+ // ============================
+ // AVALIAR ARTISTA
+ // ============================
+
+
+router.post("/:artistaId/avaliar", verificarToken, async (req, res) => {
+    try {
+        const artistaId = Number(req.params.artistaId);
+        const avaliadorId = Number(req.usuario.id);
+        const tipo = req.usuario.tipo;
+        const nota = Number(req.body.nota);
+
+        if (!Number.isSafeInteger(artistaId) || artistaId <= 0) {
+            return res.status(400).json({
+                erro: "ID do artista inválido."
+            });
+        }
+
+        if (
+            !Number.isSafeInteger(avaliadorId) ||
+            avaliadorId <= 0 ||
+            !["artista", "cliente"].includes(tipo)
+        ) {
+            return res.status(403).json({
+                erro: "Usuário não autorizado."
+            });
+        }
+
+        if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+            return res.status(400).json({
+                erro: "A nota deve ser um número inteiro de 1 a 5."
+            });
+        }
+
+        if (tipo === "artista" && avaliadorId === artistaId) {
+            return res.status(400).json({
+                erro: "Você não pode avaliar a si mesmo."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const artista = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT id
+                FROM Artistas
+                WHERE id = @artistaId
+            `);
+
+        if (artista.recordset.length === 0) {
+            return res.status(404).json({
+                erro: "Artista não encontrado."
+            });
+        }
+
+        const clienteId = tipo === "cliente" ? avaliadorId : null;
+        const artistaAvaliadorId =
+            tipo === "artista" ? avaliadorId : null;
+
+        const existente = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .input("clienteId", sql.Int, clienteId)
+            .input("artistaAvaliadorId", sql.Int, artistaAvaliadorId)
+            .query(`
+                SELECT id
+                FROM dbo.Avaliacoes
+                WHERE artista_id = @artistaId
+                  AND (
+                    (@clienteId IS NOT NULL
+                     AND cliente_id = @clienteId)
+                    OR
+                    (@artistaAvaliadorId IS NOT NULL
+                     AND artista_avaliador_id = @artistaAvaliadorId)
+                  )
+            `);
+
+        if (existente.recordset.length > 0) {
+            return res.status(409).json({
+                erro: "Você já avaliou este artista."
+            });
+        }
+
+        await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .input("clienteId", sql.Int, clienteId)
+            .input("artistaAvaliadorId", sql.Int, artistaAvaliadorId)
+            .input("nota", sql.Decimal(4, 2), nota)
+            .input("comentario", sql.NVarChar(sql.MAX), null)
+            .query(`
+                INSERT INTO dbo.Avaliacoes (
+                    cliente_id,
+                    artista_id,
+                    nota,
+                    comentario,
+                    data_avaliacao,
+                    artista_avaliador_id
+                )
+                VALUES (
+                    @clienteId,
+                    @artistaId,
+                    @nota,
+                    @comentario,
+                    SYSDATETIME(),
+                    @artistaAvaliadorId
+                )
+            `);
+
+        const resultado = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT
+                    CAST(AVG(nota) AS DECIMAL(3,1)) AS avaliacao,
+                    COUNT(*) AS numavaliacao
+                FROM dbo.Avaliacoes
+                WHERE artista_id = @artistaId
+            `);
+
+        return res.status(201).json({
+            mensagem: "Avaliação registrada com sucesso!",
+            avaliacao: resultado.recordset[0].avaliacao,
+            numavaliacao: resultado.recordset[0].numavaliacao
+        });
+
+    } catch (erro) {
+        console.error("Erro ao avaliar artista:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao registrar avaliação."
+        });
+    }
+});
+
+router.post("/:artistaId/avaliar", verificarToken, async (req, res) => {
+    try {
+        const artistaId = Number(req.params.artistaId);
+        const avaliadorId = Number(req.usuario.id);
+        const tipo = req.usuario.tipo;
+        const nota = Number(req.body.nota);
+        const comentario = req.body.comentario ?? null;
+
+        if (!Number.isSafeInteger(artistaId) || artistaId <= 0) {
+            return res.status(400).json({
+                erro: "ID do artista inválido."
+            });
+        }
+
+        if (
+            !Number.isSafeInteger(avaliadorId) ||
+            avaliadorId <= 0 ||
+            !["artista", "cliente"].includes(tipo)
+        ) {
+            return res.status(403).json({
+                erro: "Usuário não autorizado."
+            });
+        }
+
+        if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+            return res.status(400).json({
+                erro: "A nota deve ser um número inteiro de 1 a 5."
+            });
+        }
+
+        if (tipo === "artista" && avaliadorId === artistaId) {
+            return res.status(400).json({
+                erro: "Você não pode avaliar a si mesmo."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const artista = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT id
+                FROM Artistas
+                WHERE id = @artistaId
+            `);
+
+        if (artista.recordset.length === 0) {
+            return res.status(404).json({
+                erro: "Artista não encontrado."
+            });
+        }
+
+        const clienteId = tipo === "cliente" ? avaliadorId : null;
+        const artistaAvaliadorId =
+            tipo === "artista" ? avaliadorId : null;
+
+        const existente = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .input("clienteId", sql.Int, clienteId)
+            .input("artistaAvaliadorId", sql.Int, artistaAvaliadorId)
+            .query(`
+                SELECT id
+                FROM dbo.Avaliacoes
+                WHERE artista_id = @artistaId
+                  AND (
+                    (@clienteId IS NOT NULL
+                     AND cliente_id = @clienteId)
+                    OR
+                    (@artistaAvaliadorId IS NOT NULL
+                     AND artista_avaliador_id = @artistaAvaliadorId)
+                  )
+            `);
+
+        if (existente.recordset.length > 0) {
+            return res.status(409).json({
+                erro: "Você já avaliou este artista."
+            });
+        }
+
+        await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .input("clienteId", sql.Int, clienteId)
+            .input("artistaAvaliadorId", sql.Int, artistaAvaliadorId)
+            .input("nota", sql.Decimal(4, 2), nota)
+            .input("comentario", sql.NVarChar(sql.MAX), comentario)
+            .query(`
+                INSERT INTO dbo.Avaliacoes (
+                    cliente_id,
+                    artista_id,
+                    nota,
+                    comentario,
+                    data_avaliacao,
+                    artista_avaliador_id
+                )
+                VALUES (
+                    @clienteId,
+                    @artistaId,
+                    @nota,
+                    @comentario,
+                    SYSDATETIME(),
+                    @artistaAvaliadorId
+                )
+            `);
+
+        const resultado = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT
+                    CAST(AVG(nota) AS DECIMAL(3,1)) AS avaliacao,
+                    COUNT(*) AS numavaliacao
+                FROM dbo.Avaliacoes
+                WHERE artista_id = @artistaId
+            `);
+
+        return res.status(201).json({
+            mensagem: "Avaliação registrada com sucesso!",
+            avaliacao: resultado.recordset[0].avaliacao,
+            numavaliacao: resultado.recordset[0].numavaliacao
+        });
+
+    } catch (erro) {
+        console.error("Erro ao avaliar artista:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao registrar avaliação."
+        });
+    }
+});
+
 // ============================
 // DEIXAR DE SEGUIR ARTISTA
 // ============================
@@ -1309,39 +1636,51 @@ router.get("/minhas-artes", verificarToken, async (req, res) => {
     }
 });
 // GET - listar todas as artes
-router.get("/artes", async (req, res) => {
+
+router.get("/artes", authOpcional, async (req, res) => {
     try {
         const pool = await poolPromise;
 
-        const resultado = await pool.request().query(`
-            SELECT
-                Artes.id,
-                Artes.artista_id,
-                Artes.titulo,
-                Artes.imagem,
-                Artes.data_publicacao,
-                Artistas.username
-            FROM Artes
-            INNER JOIN Artistas
-                ON Artes.artista_id = Artistas.id
-            ORDER BY Artes.data_publicacao DESC
-        `);
+        const usuarioId = req.usuario?.id ?? null;
+        const tipoUsuario = req.usuario?.tipo ?? null;
 
-        const artes = resultado.recordset.map(arte => ({
-    ...arte,
-    imagem: arte.imagem
-}));
+        const resultado = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipoUsuario", sql.VarChar(20), tipoUsuario)
+            .query(`
+                SELECT
+                    Artes.id,
+                    Artes.artista_id,
+                    Artes.titulo,
+                    Artes.imagem,
+                    Artes.data_publicacao,
+                    Artistas.username
+                FROM Artes
+                INNER JOIN Artistas
+                    ON Artes.artista_id = Artistas.id
+                WHERE
+                    @usuarioId IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM dbo.ArtistasBloqueados b
+                        WHERE b.usuario_id = @usuarioId
+                          AND b.usuario_tipo = @tipoUsuario
+                          AND b.artista_id = Artes.artista_id
+                    )
+                ORDER BY Artes.data_publicacao DESC
+            `);
 
-        res.json(artes);
+        return res.json(resultado.recordset);
 
-    } catch (error) {
-        console.error("Erro ao buscar artes:", error);
+    } catch (erro) {
+        console.error("Erro ao buscar artes:", erro);
 
-        res.status(500).json({
-            erro: "Erro ao buscar artes"
+        return res.status(500).json({
+            erro: "Erro ao buscar artes."
         });
     }
 });
+
 // ===============================
 // PORTFÓLIO PÚBLICO DO ARTISTA
 // ===============================
@@ -1360,6 +1699,33 @@ router.get(
         }
 
         const pool = await poolPromise;
+
+        const usuarioId = req.usuario.id;
+        const tipoUsuario = req.usuario.tipo;
+
+        if (tipoUsuario !== "artista" && tipoUsuario !== "cliente") {
+            return res.status(403).json({
+                erro: "Tipo de usuário inválido."
+            });
+        }
+
+        const bloqueio = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipoUsuario", sql.VarChar(20), tipoUsuario)
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT TOP 1 id
+                FROM dbo.ArtistasBloqueados
+                WHERE usuario_id = @usuarioId
+                  AND usuario_tipo = @tipoUsuario
+                  AND artista_id = @artistaId
+            `);
+
+        if (bloqueio.recordset.length > 0) {
+            return res.status(404).json({
+                erro: "Este portfólio não está disponível."
+            });
+        }
 
         // Primeiro verifica se o artista existe
         const artistaBase = await pool.request()
@@ -1453,13 +1819,17 @@ const artes = artesResult.recordset.map(arte => ({
 //
 //    coiso do carrossel
 //
-router.get("/artes-carrossel", async (req, res) => {
 
+router.get("/artes-carrossel", authOpcional, async (req, res) => {
     try {
-
         const pool = await poolPromise;
 
+        const usuarioId = req.usuario?.id ?? null;
+        const tipoUsuario = req.usuario?.tipo ?? null;
+
         const resultado = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipoUsuario", sql.VarChar(20), tipoUsuario)
             .query(`
                 SELECT
                     Artes.id,
@@ -1470,26 +1840,325 @@ router.get("/artes-carrossel", async (req, res) => {
                 FROM Artes
                 INNER JOIN PerfilArtista
                     ON Artes.artista_id = PerfilArtista.artista_id
+                WHERE
+                    @usuarioId IS NULL
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM dbo.ArtistasBloqueados b
+                        WHERE b.usuario_id = @usuarioId
+                          AND b.usuario_tipo = @tipoUsuario
+                          AND b.artista_id = Artes.artista_id
+                    )
+                ORDER BY Artes.data_publicacao DESC
             `);
 
-      const artes = resultado.recordset.map(arte => ({
-    ...arte,
-    imagem: arte.imagem
-}));
-
-        return res.json(artes);
+        return res.json(resultado.recordset);
 
     } catch (erro) {
-
-        console.error(
-            "❌ Erro ao buscar artes do carrossel:",
-            erro
-        );
+        console.error("Erro ao buscar artes do carrossel:", erro);
 
         return res.status(500).json({
             erro: "Erro ao buscar artes."
         });
     }
 });
+
+/* =========================================
+   BLOQUEAR ARTISTA
+========================================= */
+
+router.post("/:artistaId/bloquear", verificarToken, async (req, res) => {
+    try {
+        const artistaId = Number(req.params.artistaId);
+        const usuarioId = Number(req.usuario.id);
+        const tipo = req.usuario.tipo;
+
+        if (
+            !Number.isSafeInteger(artistaId) || artistaId <= 0 ||
+            !Number.isSafeInteger(usuarioId) || usuarioId <= 0
+        ) {
+            return res.status(400).json({ erro: "ID inválido." });
+        }
+
+        if (!["artista", "cliente"].includes(tipo)) {
+            return res.status(403).json({ erro: "Usuário não autorizado." });
+        }
+
+        if (tipo === "artista" && usuarioId === artistaId) {
+            return res.status(400).json({
+                erro: "Você não pode bloquear a própria conta."
+            });
+        }
+
+        const pool = await poolPromise;
+
+        const artista = await pool.request()
+            .input("artistaId", sql.Int, artistaId)
+            .query("SELECT id FROM Artistas WHERE id = @artistaId");
+
+        if (artista.recordset.length === 0) {
+            return res.status(404).json({ erro: "Artista não encontrado." });
+        }
+
+        const existente = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipo", sql.VarChar(20), tipo)
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                SELECT id
+                FROM dbo.ArtistasBloqueados
+                WHERE usuario_id = @usuarioId
+                  AND usuario_tipo = @tipo
+                  AND artista_id = @artistaId
+            `);
+
+        if (existente.recordset.length > 0) {
+            return res.status(409).json({
+                erro: "Você já bloqueou este artista."
+            });
+        }
+
+        await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipo", sql.VarChar(20), tipo)
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                INSERT INTO dbo.ArtistasBloqueados
+                    (usuario_id, usuario_tipo, artista_id)
+                VALUES
+                    (@usuarioId, @tipo, @artistaId)
+            `);
+
+        return res.status(201).json({
+            mensagem: "Artista bloqueado com sucesso."
+        });
+    } catch (erro) {
+        console.error("Erro ao bloquear artista:", erro);
+        return res.status(500).json({
+            erro: "Erro ao bloquear artista."
+        });
+    }
+});
+
+
+/* =========================================
+   LISTAR CONTAS BLOQUEADAS
+========================================= */
+
+router.get("/bloqueados", verificarToken, async (req, res) => {
+    try {
+        const usuarioId = Number(req.usuario.id);
+        const tipo = req.usuario.tipo;
+
+        if (!["artista", "cliente"].includes(tipo)) {
+            return res.status(403).json({ erro: "Usuário não autorizado." });
+        }
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipo", sql.VarChar(20), tipo)
+            .query(`
+                SELECT
+                    a.id,
+                    a.username,
+                    p.nome,
+                    p.foto_perfil AS foto,
+                    p.profissao,
+                    p.cidade,
+                    b.data_bloqueio
+                FROM dbo.ArtistasBloqueados b
+                INNER JOIN Artistas a
+                    ON a.id = b.artista_id
+                LEFT JOIN PerfilArtista p
+                    ON p.artista_id = a.id
+                WHERE b.usuario_id = @usuarioId
+                  AND b.usuario_tipo = @tipo
+                ORDER BY b.data_bloqueio DESC
+            `);
+
+        return res.status(200).json(resultado.recordset);
+    } catch (erro) {
+        console.error("Erro ao listar bloqueados:", erro);
+        return res.status(500).json({
+            erro: "Erro ao buscar contas bloqueadas."
+        });
+    }
+});
+
+
+/* =========================================
+   DESBLOQUEAR ARTISTA
+========================================= */
+
+router.delete("/bloqueados/:artistaId", verificarToken, async (req, res) => {
+    try {
+        const artistaId = Number(req.params.artistaId);
+        const usuarioId = Number(req.usuario.id);
+        const tipo = req.usuario.tipo;
+
+        if (
+            !Number.isSafeInteger(artistaId) || artistaId <= 0 ||
+            !Number.isSafeInteger(usuarioId) || usuarioId <= 0
+        ) {
+            return res.status(400).json({ erro: "ID inválido." });
+        }
+
+        if (!["artista", "cliente"].includes(tipo)) {
+            return res.status(403).json({ erro: "Usuário não autorizado." });
+        }
+
+        const pool = await poolPromise;
+
+        const resultado = await pool.request()
+            .input("usuarioId", sql.Int, usuarioId)
+            .input("tipo", sql.VarChar(20), tipo)
+            .input("artistaId", sql.Int, artistaId)
+            .query(`
+                DELETE FROM dbo.ArtistasBloqueados
+                WHERE usuario_id = @usuarioId
+                  AND usuario_tipo = @tipo
+                  AND artista_id = @artistaId
+            `);
+
+        if (resultado.rowsAffected[0] === 0) {
+            return res.status(404).json({
+                erro: "Este artista não está na sua lista de bloqueados."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Artista desbloqueado com sucesso."
+        });
+    } catch (erro) {
+        console.error("Erro ao desbloquear artista:", erro);
+        return res.status(500).json({
+            erro: "Erro ao desbloquear artista."
+        });
+    }
+});
+
+
+/* =========================================
+   DENUNCIAR ARTISTA COM IMAGENS
+========================================= */
+
+router.post(
+    "/:artistaId/denunciar",
+    verificarToken,
+    upload.array("imagens", 5),
+    async (req, res) => {
+        try {
+            const artistaId = Number(req.params.artistaId);
+            const denuncianteId = Number(req.usuario.id);
+            const tipo = req.usuario.tipo;
+            const motivo = typeof req.body.motivo === "string"
+                ? req.body.motivo.trim()
+                : "";
+
+            if (
+                !Number.isSafeInteger(artistaId) || artistaId <= 0 ||
+                !Number.isSafeInteger(denuncianteId) || denuncianteId <= 0
+            ) {
+                return res.status(400).json({ erro: "ID inválido." });
+            }
+
+            if (!["artista", "cliente"].includes(tipo)) {
+                return res.status(403).json({ erro: "Usuário não autorizado." });
+            }
+
+            if (!motivo) {
+                return res.status(400).json({
+                    erro: "Explique o motivo da denúncia."
+                });
+            }
+
+            if (motivo.length > 5000) {
+                return res.status(400).json({
+                    erro: "O motivo deve ter no máximo 5000 caracteres."
+                });
+            }
+
+            const arquivos = req.files || [];
+
+            if (arquivos.some(arquivo => !arquivo.mimetype.startsWith("image/"))) {
+                return res.status(400).json({
+                    erro: "Todos os anexos devem ser imagens."
+                });
+            }
+
+            const pool = await poolPromise;
+
+            const artista = await pool.request()
+                .input("artistaId", sql.Int, artistaId)
+                .query("SELECT id FROM Artistas WHERE id = @artistaId");
+
+            if (artista.recordset.length === 0) {
+                return res.status(404).json({
+                    erro: "Artista não encontrado."
+                });
+            }
+
+            if (tipo === "artista" && denuncianteId === artistaId) {
+                return res.status(400).json({
+                    erro: "Você não pode denunciar a própria conta."
+                });
+            }
+
+            // Envia as imagens ao Cloudinary antes de registrar a denúncia.
+            const imagensEnviadas = [];
+
+            for (const arquivo of arquivos) {
+                const nomeArquivo =
+                    `denuncia-${denuncianteId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+                const imagem = await uploadParaCloudinary(
+                    arquivo.buffer,
+                    nomeArquivo
+                );
+
+                imagensEnviadas.push(imagem.secure_url);
+            }
+
+            const denuncia = await pool.request()
+                .input("denuncianteId", sql.Int, denuncianteId)
+                .input("tipo", sql.VarChar(20), tipo)
+                .input("artistaId", sql.Int, artistaId)
+                .input("motivo", sql.NVarChar(sql.MAX), motivo)
+                .query(`
+                    INSERT INTO dbo.DenunciasArtistas
+                        (denunciante_id, denunciante_tipo, artista_id, motivo)
+                    OUTPUT INSERTED.id
+                    VALUES
+                        (@denuncianteId, @tipo, @artistaId, @motivo)
+                `);
+
+            const denunciaId = denuncia.recordset[0].id;
+
+            for (const url of imagensEnviadas) {
+                await pool.request()
+                    .input("denunciaId", sql.Int, denunciaId)
+                    .input("url", sql.NVarChar(1000), url)
+                    .query(`
+                        INSERT INTO dbo.ImagensDenunciasArtistas
+                            (denuncia_id, url_imagem)
+                        VALUES
+                            (@denunciaId, @url)
+                    `);
+            }
+
+            return res.status(201).json({
+                mensagem: "Denúncia registrada com sucesso.",
+                denunciaId
+            });
+        } catch (erro) {
+            console.error("Erro ao denunciar artista:", erro);
+            return res.status(500).json({
+                erro: "Erro ao registrar denúncia."
+            });
+        }
+    }
+);
 
 module.exports = router;

@@ -265,6 +265,14 @@ window.dispatchEvent(new Event("loginStatusChanged"));
                             Gerencie suas informações pessoais e mantenha sua conta atualizada.
                         </p>
                     </div>
+
+                    <button
+    type="button"
+    className="perfil-cliente-botao-foto"
+    onClick={() => navigate("/artistas-bloqueados")}
+>
+    Artistas bloqueados
+</button>
                 </header>
 
                 {mensagem && (
