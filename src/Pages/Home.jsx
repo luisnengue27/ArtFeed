@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import styles from "./Home.module.css";
 import balao from "../assets/balao.png";
@@ -5,12 +6,12 @@ import CarrosselArtes from "../Components/CarrosselArtes/CarrosselArtes";
 
 const Home = () => {
     return (
-        <div className={styles.home}>
+        <main className={styles.home}>
             <div className={styles.logon}>
                 <h1>ARTFEED</h1>
             </div>
 
-            <Link to="/conversas" aria-label="Abrir conversas">
+            <Link to="/conversas" aria-label="Conversas">
                 <img
                     src={balao}
                     alt="Conversas"
@@ -21,7 +22,7 @@ const Home = () => {
             <div className={styles.fix}>
                 <CarrosselArtes />
             </div>
-        </div>
+        </main>
     );
 };
 
