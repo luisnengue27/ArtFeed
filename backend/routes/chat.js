@@ -110,7 +110,6 @@ router.post("/conversa", verificarToken, async (req, res) => {
             // Artista conversando com outro artista
             if (artista_id != usuarioId) {
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(artista_id),
@@ -177,7 +176,6 @@ if (bloqueio) {
                 });
             }
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(cliente_id),
@@ -200,7 +198,7 @@ if (bloqueio) {
                     FROM conversas
                     WHERE artista_id = $1
                       AND cliente_id = $2
-                `, [artista_id, cliente_id]);
+                `, [usuarioId, Number(cliente_id)]);
 
 
             if (existente.rows.length > 0) {
@@ -222,7 +220,7 @@ if (bloqueio) {
                         cliente_id,
                         artista_destino_id,
                         data_criacao
-                `, [artista_id, cliente_id]);
+               `, [usuarioId, Number(cliente_id)]);
 
 
             return res.status(201).json(nova.rows[0]);
@@ -241,7 +239,6 @@ if (bloqueio) {
                 });
             }
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(artista_id),
@@ -264,7 +261,7 @@ if (bloqueio) {
                     FROM conversas
                     WHERE artista_id = $1
                       AND cliente_id = $2
-                `, [artista_id, cliente_id]);
+                `, [Number(artista_id), usuarioId]);
 
 
             if (existente.rows.length > 0) {
@@ -286,7 +283,7 @@ if (bloqueio) {
                         cliente_id,
                         artista_destino_id,
                         data_criacao
-                `, [artista_id, cliente_id]);
+                `, [Number(artista_id), usuarioId]);
 
 
             return res.status(201).json(nova.rows[0]);
@@ -378,7 +375,6 @@ const outroTipo =
         : "artista";
 
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),
@@ -525,9 +521,7 @@ const outroTipo =
     tipo === "cliente" || dados.cliente_id !== null
         ? (tipo === "cliente" ? "artista" : "cliente")
         : "artista";
-
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),
@@ -601,7 +595,7 @@ router.get("/conversas", verificarToken, async (req, res) => {
                     FROM conversas c
                     INNER JOIN Artistas a
                         ON a.id = c.artista_id
-                    LEFT JOIN PerfilArtista perfil
+                    LEFT JOIN perfil_artista perfil
                         ON perfil.artista_id = a.id
                     LEFT JOIN LATERAL (
                         SELECT texto, data_envio
@@ -675,10 +669,10 @@ ORDER BY
                     LEFT JOIN Artistas destino
                         ON destino.id = c.artista_destino_id
 
-                    LEFT JOIN PerfilArtista perfilOrigem
+                    LEFT JOIN perfil_artista perfilOrigem
                         ON perfilOrigem.artista_id = origem.id
 
-                    LEFT JOIN PerfilArtista perfilDestino
+                    LEFT JOIN perfil_artista perfilDestino
                         ON perfilDestino.artista_id = destino.id
 
                     LEFT JOIN Clientes cliente
@@ -828,9 +822,7 @@ const outroTipo =
     tipo === "cliente" || dados.cliente_id !== null
         ? (tipo === "cliente" ? "artista" : "cliente")
         : "artista";
-
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),
@@ -910,11 +902,11 @@ LEFT JOIN Clientes cliente
     ON cliente.id = c.cliente_id
 LEFT JOIN Artistas origem
     ON origem.id = c.artista_id
-LEFT JOIN PerfilArtista perfilOrigem
+LEFT JOIN perfil_artista perfilOrigem
     ON perfilOrigem.artista_id = origem.id
 LEFT JOIN Artistas destino
     ON destino.id = c.artista_destino_id
-LEFT JOIN PerfilArtista perfilDestino
+LEFT JOIN perfil_artista perfilDestino
     ON perfilDestino.artista_id = destino.id
 WHERE c.id = $1
             `, [conversaId]);
@@ -959,7 +951,6 @@ const outroTipo =
         : "artista";
 
 const bloqueio = await existeBloqueioEntreUsuarios(
-    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),

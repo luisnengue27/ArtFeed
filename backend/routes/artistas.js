@@ -705,14 +705,17 @@ router.put("/perfil", verificarToken, upload.single("foto"), async (req, res) =>
                 [senhaCriptografada, artistaId]
             );
         }
-
-        const requestPerfil = await poolNeon.query(
-            `UPDATE perfil_artista
-             SET nome = $1, preco = $2, cidade = $3,
-                profissao = $4, tags = $5, descricao = $6`,
-            [nome, preco, cidade, profissao, tags, descricao]
-        );
-
+await poolNeon.query(
+    `UPDATE perfil_artista
+     SET nome = $1,
+         preco = $2,
+         cidade = $3,
+         profissao = $4,
+         tags = $5,
+         descricao = $6
+     WHERE artista_id = $7`,
+    [nome, preco, cidade, profissao, tags, descricao, artistaId]
+);
         if (req.file) {
             const nomeArquivo = `perfil-${artistaId}-${Date.now()}`;
             const fotoCloudinary = await uploadParaCloudinary(req.file.buffer, nomeArquivo);
@@ -722,7 +725,7 @@ router.put("/perfil", verificarToken, upload.single("foto"), async (req, res) =>
             );
         }
 
-        await requestPerfil;
+        
 
         return res.status(200).json({ mensagem: "Perfil atualizado com sucesso!" });
 
