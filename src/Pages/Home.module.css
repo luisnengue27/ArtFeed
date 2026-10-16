@@ -136,6 +136,50 @@
     overflow-wrap: anywhere;
 }
 
+/* Mantém o título independente do carrossel */
+.home .logon {
+    position: absolute;
+    left: 0;
+    bottom: 130px;
+    top: auto;
+    transform: none;
+    margin: 0;
+}
+
+/* O carrossel ocupa espaço no fluxo da página */
+.home .fix {
+    position: relative;
+    margin-top: 0;
+    padding-top: 1050px;
+    padding-bottom: 50px;
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+    .home .logon {
+        top: 100px;
+        bottom: auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .home .fix {
+        padding-top: 600px;
+    }
+}
+
+/* Celular */
+@media (max-width: 480px) {
+    .home .logon {
+        top: 80px;
+        bottom: auto;
+    }
+
+    .home .fix {
+        padding-top: 460px;
+    }
+}
+
 /* Ícone de conversas */
 .Balao {
     position: fixed;
