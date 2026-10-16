@@ -63,12 +63,15 @@
 /* Área do carrossel */
 
 /* Área do carrossel de artes */
+
+/* Carrossel de artes */
 .fix {
     position: relative;
     width: 100%;
     box-sizing: border-box;
 
-    /* Desce o carrossel para o fundo do Cristo */
+    /* Empurra o carrossel para baixo e aumenta a página */
+    margin-top: 0;
     padding-top: 850px;
     padding-bottom: 50px;
 
