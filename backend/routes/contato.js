@@ -2,8 +2,7 @@
 const express = require("express");
 const router = express.Router();
 
-const sql = require("mssql");
-const { poolPromise } = require("../db");
+const { poolNeon } = require("../db");
 
 router.post("/", async (req, res) => {
     console.log("[CONTATO] Requisição recebida");
@@ -45,23 +44,17 @@ router.post("/", async (req, res) => {
     }
 
     try {
-        console.log("[CONTATO] Salvando mensagem no Azure SQL");
+        console.log("[CONTATO] Salvando mensagem no banco de dados");
 
-        const pool = await poolPromise;
+        await poolNeon.query(
+            `INSERT INTO mensagens_contato
+                (nome, email, assunto, mensagem)
+             VALUES
+                ($1, $2, $3, $4)`,
+            [nomeLimpo, emailLimpo, assuntoLimpo, mensagemLimpa]
+        );
 
-        await pool.request()
-            .input("nome", sql.NVarChar(100), nomeLimpo)
-            .input("email", sql.NVarChar(254), emailLimpo)
-            .input("assunto", sql.NVarChar(150), assuntoLimpo)
-            .input("mensagem", sql.NVarChar(sql.MAX), mensagemLimpa)
-            .query(`
-                INSERT INTO dbo.MensagensContato
-                    (nome, email, assunto, mensagem)
-                VALUES
-                    (@nome, @email, @assunto, @mensagem)
-            `);
-
-        console.log("[CONTATO] Mensagem salva no Azure SQL");
+        console.log("[CONTATO] Mensagem salva no banco de dados");
 
         return res.status(201).json({
             mensagem: "Mensagem recebida com sucesso!"

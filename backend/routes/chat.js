@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { poolPromise } = require("../db");
+const { poolNeon } = require("../db");
 const verificarToken = require("../middleware/authMiddleware");
 
 const multer = require("multer");
@@ -48,37 +48,33 @@ const uploadParaCloudinary = (buffer) => {
 };
 
 async function existeBloqueioEntreUsuarios(
-    pool,
     usuarioId,
     tipoUsuario,
     outroId,
     tipoOutro
 ) {
-    const resultado = await pool.request()
-        .input("usuarioId", Number(usuarioId))
-        .input("tipoUsuario", tipoUsuario)
-        .input("outroId", Number(outroId))
-        .input("tipoOutro", tipoOutro)
-        .query(`
-            SELECT TOP 1 id
-            FROM dbo.ArtistasBloqueados
-            WHERE
-                (
-                    usuario_id = @usuarioId
-                    AND usuario_tipo = @tipoUsuario
-                    AND @tipoOutro = 'artista'
-                    AND artista_id = @outroId
-                )
-                OR
-                (
-                    @tipoUsuario = 'artista'
-                    AND usuario_id = @outroId
-                    AND usuario_tipo = @tipoOutro
-                    AND artista_id = @usuarioId
-                )
-        `);
+    const resultado = await poolNeon.query(
+        `SELECT id
+         FROM artistas_bloqueados
+         WHERE
+             (
+                 usuario_id = $1
+                 AND usuario_tipo = $2
+                 AND $3 = 'artista'
+                 AND artista_id = $4
+             )
+             OR
+             (
+                 $2 = 'artista'
+                 AND usuario_id = $4
+                 AND usuario_tipo = $3
+                 AND artista_id = $1
+             )
+         LIMIT 1`,
+        [usuarioId, tipoUsuario, tipoOutro, outroId]
+    );
 
-    return resultado.recordset.length > 0;
+    return resultado.rows.length > 0;
 }
 
 // ==========================================
@@ -89,9 +85,14 @@ router.post("/conversa", verificarToken, async (req, res) => {
         const { artista_id, cliente_id } = req.body;
 
         const tipo = req.usuario.tipo;
-        const usuarioId = req.usuario.id;
+        const usuarioId = Number(req.usuario.id);
 
-        const pool = await poolPromise;
+        if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+            return res.status(400).json({
+                erro: "ID de usuário inválido"
+            });
+        }
+
 
 
         // ==========================================
@@ -99,7 +100,7 @@ router.post("/conversa", verificarToken, async (req, res) => {
         // ==========================================
         if (tipo === "artista") {
 
-            if (!artista_id) {
+            if (!artista_id || !Number.isInteger(Number(artista_id)) || Number(artista_id) <= 0) {
                 return res.status(400).json({
                     erro: "artista_id é obrigatório"
                 });
@@ -109,7 +110,7 @@ router.post("/conversa", verificarToken, async (req, res) => {
             // Artista conversando com outro artista
             if (artista_id != usuarioId) {
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(artista_id),
@@ -121,55 +122,48 @@ if (bloqueio) {
         erro: "Não é possível conversar devido a um bloqueio entre as contas."
     });
 }
-                const existente = await pool.request()
-                    .input("artista_id", usuarioId)
-                    .input("artista_destino_id", artista_id)
-                    .query(`
+                const existente = await poolNeon.query(`
                         SELECT
                             id,
                             artista_id,
                             cliente_id,
                             artista_destino_id,
                             data_criacao
-                        FROM Conversas
+                        FROM conversas
                         WHERE
                             (
-                                artista_id = @artista_id
-                                AND artista_destino_id = @artista_destino_id
+                                artista_id = $1
+                                AND artista_destino_id = $2
                             )
                             OR
                             (
-                                artista_id = @artista_destino_id
-                                AND artista_destino_id = @artista_id
+                                artista_id = $3
+                                AND artista_destino_id = $4
                             )
-                    `);
+                    `, [usuarioId, Number(artista_id), Number(artista_id), usuarioId]);
 
-                if (existente.recordset.length > 0) {
-                    return res.json(existente.recordset[0]);
+                if (existente.rows.length > 0) {
+                    return res.json(existente.rows[0]);
                 }
 
 
-                const nova = await pool.request()
-                    .input("artista_id", usuarioId)
-                    .input("artista_destino_id", artista_id)
-                    .query(`
-                        INSERT INTO Conversas (
+                const nova = await poolNeon.query(`
+                        INSERT INTO conversas (
                             artista_id,
                             artista_destino_id
                         )
-                        OUTPUT
-                            INSERTED.id,
-                            INSERTED.artista_id,
-                            INSERTED.cliente_id,
-                            INSERTED.artista_destino_id,
-                            INSERTED.data_criacao
                         VALUES (
-                            @artista_id,
-                            @artista_destino_id
+                            $1,
+                            $2
                         )
-                    `);
+                        RETURNING id,
+                            artista_id,
+                            cliente_id,
+                            artista_destino_id,
+                            data_criacao
+                    `, [usuarioId, Number(artista_id)]);
 
-                return res.status(201).json(nova.recordset[0]);
+                return res.status(201).json(nova.rows[0]);
             }
 
 
@@ -177,13 +171,13 @@ if (bloqueio) {
             // ARTISTA CONVERSANDO COM CLIENTE
             // ==========================================
 
-            if (!cliente_id) {
+            if (!cliente_id || !Number.isInteger(Number(cliente_id)) || Number(cliente_id) <= 0) {
                 return res.status(400).json({
                     erro: "cliente_id é obrigatório"
                 });
             }
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(cliente_id),
@@ -196,49 +190,42 @@ if (bloqueio) {
     });
 }
 
-            const existente = await pool.request()
-                .input("artista_id", usuarioId)
-                .input("cliente_id", cliente_id)
-                .query(`
+            const existente = await poolNeon.query(`
                     SELECT
                         id,
                         artista_id,
                         cliente_id,
                         artista_destino_id,
                         data_criacao
-                    FROM Conversas
-                    WHERE artista_id = @artista_id
-                      AND cliente_id = @cliente_id
-                `);
+                    FROM conversas
+                    WHERE artista_id = $1
+                      AND cliente_id = $2
+                `, [artista_id, cliente_id]);
 
 
-            if (existente.recordset.length > 0) {
-                return res.json(existente.recordset[0]);
+            if (existente.rows.length > 0) {
+                return res.json(existente.rows[0]);
             }
 
 
-            const nova = await pool.request()
-                .input("artista_id", usuarioId)
-                .input("cliente_id", cliente_id)
-                .query(`
-                    INSERT INTO Conversas (
+            const nova = await poolNeon.query(`
+                    INSERT INTO conversas (
                         artista_id,
                         cliente_id
                     )
-                    OUTPUT
-                        INSERTED.id,
-                        INSERTED.artista_id,
-                        INSERTED.cliente_id,
-                        INSERTED.artista_destino_id,
-                        INSERTED.data_criacao
                     VALUES (
-                        @artista_id,
-                        @cliente_id
+                        $1,
+                        $2
                     )
-                `);
+                    RETURNING id,
+                        artista_id,
+                        cliente_id,
+                        artista_destino_id,
+                        data_criacao
+                `, [artista_id, cliente_id]);
 
 
-            return res.status(201).json(nova.recordset[0]);
+            return res.status(201).json(nova.rows[0]);
         }
 
 
@@ -248,13 +235,13 @@ if (bloqueio) {
 
         if (tipo === "cliente") {
 
-            if (!artista_id) {
+            if (!artista_id || !Number.isInteger(Number(artista_id)) || Number(artista_id) <= 0) {
                 return res.status(400).json({
                     erro: "artista_id é obrigatório"
                 });
             }
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(artista_id),
@@ -267,49 +254,42 @@ if (bloqueio) {
     });
 }
 
-            const existente = await pool.request()
-                .input("artista_id", artista_id)
-                .input("cliente_id", usuarioId)
-                .query(`
+            const existente = await poolNeon.query(`
                     SELECT
                         id,
                         artista_id,
                         cliente_id,
                         artista_destino_id,
                         data_criacao
-                    FROM Conversas
-                    WHERE artista_id = @artista_id
-                      AND cliente_id = @cliente_id
-                `);
+                    FROM conversas
+                    WHERE artista_id = $1
+                      AND cliente_id = $2
+                `, [artista_id, cliente_id]);
 
 
-            if (existente.recordset.length > 0) {
-                return res.json(existente.recordset[0]);
+            if (existente.rows.length > 0) {
+                return res.json(existente.rows[0]);
             }
 
 
-            const nova = await pool.request()
-                .input("artista_id", artista_id)
-                .input("cliente_id", usuarioId)
-                .query(`
-                    INSERT INTO Conversas (
+            const nova = await poolNeon.query(`
+                    INSERT INTO conversas (
                         artista_id,
                         cliente_id
                     )
-                    OUTPUT
-                        INSERTED.id,
-                        INSERTED.artista_id,
-                        INSERTED.cliente_id,
-                        INSERTED.artista_destino_id,
-                        INSERTED.data_criacao
                     VALUES (
-                        @artista_id,
-                        @cliente_id
+                        $1,
+                        $2
                     )
-                `);
+                    RETURNING id,
+                        artista_id,
+                        cliente_id,
+                        artista_destino_id,
+                        data_criacao
+                `, [artista_id, cliente_id]);
 
 
-            return res.status(201).json(nova.recordset[0]);
+            return res.status(201).json(nova.rows[0]);
         }
 
 
@@ -322,7 +302,7 @@ if (bloqueio) {
 
         console.error("Erro ao criar conversa:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             erro: "Erro ao criar conversa"
         });
     }
@@ -342,28 +322,25 @@ router.get("/conversa/:id/mensagens", verificarToken, async (req, res) => {
             });
         }
 
-        const pool = await poolPromise;
 
         // Verifica se a conversa existe
-        const conversa = await pool.request()
-            .input("id", conversaId)
-            .query(`
+        const conversa = await poolNeon.query(`
                 SELECT
                     id,
                     artista_id,
                     cliente_id,
                     artista_destino_id
-                FROM Conversas
-                WHERE id = @id
-            `);
+                FROM conversas
+                WHERE id = $1
+            `, [conversaId]);
 
-        if (conversa.recordset.length === 0) {
+        if (conversa.rows.length === 0) {
             return res.status(404).json({
                 erro: "Conversa não encontrada"
             });
         }
 
-        const dados = conversa.recordset[0];
+        const dados = conversa.rows[0];
 
         // Verifica se o usuário pertence à conversa
         const autorizado =
@@ -401,7 +378,7 @@ const outroTipo =
         : "artista";
 
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),
@@ -414,9 +391,7 @@ if (bloqueio) {
     });
 }
         // Busca as mensagens e o username de cada remetente
-        const mensagens = await pool.request()
-            .input("conversa_id", conversaId)
-            .query(`
+        const mensagens = await poolNeon.query(`
                 SELECT
                     m.id,
                     m.conversa_id,
@@ -431,7 +406,7 @@ if (bloqueio) {
                     m.texto,
                     m.imagem,
                     m.data_envio
-                FROM Mensagens m
+                FROM mensagens m
 
                 LEFT JOIN Artistas a
                     ON m.remetente_tipo = 'artista'
@@ -441,14 +416,14 @@ if (bloqueio) {
                     ON m.remetente_tipo = 'cliente'
                     AND c.id = m.remetente_id
 
-                WHERE m.conversa_id = @conversa_id
+                WHERE m.conversa_id = $1
 
                 ORDER BY
                     m.data_envio ASC,
                     m.id ASC
-            `);
+            `, [conversaId]);
 
-        return res.json(mensagens.recordset);
+        return res.json(mensagens.rows);
 
     } catch (error) {
         console.error("Erro ao buscar mensagens:", error);
@@ -468,9 +443,14 @@ router.post("/conversa/:id/mensagens", verificarToken, async (req, res) => {
 
     try {
 
-        const conversaId = req.params.id;
+        const conversaId = Number(req.params.id);
         const { texto } = req.body;
 
+        if (!Number.isInteger(conversaId) || conversaId <= 0) {
+            return res.status(400).json({
+                erro: "ID de conversa inválido"
+            });
+        }
 
         if (!texto || !texto.trim()) {
 
@@ -483,24 +463,21 @@ router.post("/conversa/:id/mensagens", verificarToken, async (req, res) => {
         const usuarioId = req.usuario.id;
         const tipo = req.usuario.tipo;
 
-        const pool = await poolPromise;
 
 
         // Verifica se a conversa existe
-        const conversa = await pool.request()
-            .input("id", conversaId)
-            .query(`
+        const conversa = await poolNeon.query(`
                 SELECT
                     id,
                     artista_id,
                     cliente_id,
                     artista_destino_id
-                FROM Conversas
-                WHERE id = @id
-            `);
+                FROM conversas
+                WHERE id = $1
+            `, [conversaId]);
 
 
-        if (conversa.recordset.length === 0) {
+        if (conversa.rows.length === 0) {
 
             return res.status(404).json({
                 erro: "Conversa não encontrada"
@@ -508,7 +485,7 @@ router.post("/conversa/:id/mensagens", verificarToken, async (req, res) => {
         }
 
 
-        const dados = conversa.recordset[0];
+        const dados = conversa.rows[0];
 
 
         // Verifica se o usuário pertence à conversa
@@ -550,7 +527,7 @@ const outroTipo =
         : "artista";
 
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),
@@ -563,43 +540,37 @@ if (bloqueio) {
     });
 }
 
-        const mensagem = await pool.request()
-            .input("conversa_id", conversaId)
-            .input("remetente_tipo", tipo)
-            .input("remetente_id", usuarioId)
-            .input("texto", texto.trim())
-            .query(`
-                INSERT INTO Mensagens (
+        const mensagem = await poolNeon.query(`
+                INSERT INTO mensagens (
                     conversa_id,
                     remetente_tipo,
                     remetente_id,
                     texto
                 )
-                OUTPUT
-                    INSERTED.id,
-                    INSERTED.conversa_id,
-                    INSERTED.remetente_tipo,
-                    INSERTED.remetente_id,
-                    INSERTED.texto,
-                    INSERTED.imagem,
-                    INSERTED.data_envio
                 VALUES (
-                    @conversa_id,
-                    @remetente_tipo,
-                    @remetente_id,
-                    @texto
+                    $1,
+                    $2,
+                    $3,
+                    $4
                 )
-            `);
+                RETURNING id,
+                    conversa_id,
+                    remetente_tipo,
+                    remetente_id,
+                    texto,
+                    imagem,
+                    data_envio
+            `, [conversaId, tipo, usuarioId, texto]);
 
 
-        res.status(201).json(mensagem.recordset[0]);
+        res.status(201).json(mensagem.rows[0]);
 
 
     } catch (error) {
 
         console.error("Erro ao enviar mensagem:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             erro: "Erro ao enviar mensagem"
         });
     }
@@ -612,7 +583,6 @@ router.get("/conversas", verificarToken, async (req, res) => {
     try {
         const usuarioId = req.usuario.id;
         const tipo = req.usuario.tipo;
-        const pool = await poolPromise;
 
         let resultado;
 
@@ -620,9 +590,7 @@ router.get("/conversas", verificarToken, async (req, res) => {
         // CLIENTE
         // ==========================================
         if (tipo === "cliente") {
-            resultado = await pool.request()
-                .input("cliente_id", usuarioId)
-                .query(`
+            resultado = await poolNeon.query(`
                     SELECT
                         c.id AS conversa_id,
                         c.artista_id,
@@ -630,49 +598,46 @@ router.get("/conversas", verificarToken, async (req, res) => {
                         perfil.foto_perfil AS outro_usuario_foto,
                         m.texto AS ultima_mensagem,
                         m.data_envio AS ultima_mensagem_data
-                    FROM Conversas c
+                    FROM conversas c
                     INNER JOIN Artistas a
                         ON a.id = c.artista_id
                     LEFT JOIN PerfilArtista perfil
                         ON perfil.artista_id = a.id
-                    OUTER APPLY (
-                        SELECT TOP 1
-                            texto,
-                            data_envio
-                        FROM Mensagens
+                    LEFT JOIN LATERAL (
+                        SELECT texto, data_envio
+                        FROM mensagens
                         WHERE conversa_id = c.id
                         ORDER BY data_envio DESC
-                    ) m
-             WHERE c.cliente_id = @cliente_id
+                        LIMIT 1
+                    ) m ON true
+             WHERE c.cliente_id = $1
   AND NOT EXISTS (
       SELECT 1
-      FROM dbo.ArtistasBloqueados b
-      WHERE b.usuario_id = @cliente_id
+      FROM artistas_bloqueados b
+      WHERE b.usuario_id = $2
         AND b.usuario_tipo = 'cliente'
         AND b.artista_id = c.artista_id
   )
 ORDER BY
     m.data_envio DESC,
     c.data_criacao DESC
-                `);
+                `, [usuarioId, usuarioId]);
 
-            return res.json(resultado.recordset);
+            return res.json(resultado.rows);
         }
 
         // ==========================================
         // ARTISTA
         // ==========================================
         if (tipo === "artista") {
-            resultado = await pool.request()
-                .input("artista_id", usuarioId)
-                .query(`
+            resultado = await poolNeon.query(`
                     SELECT
                         c.id AS conversa_id,
 
                         CASE
                             WHEN c.cliente_id IS NOT NULL
                                 THEN c.cliente_id
-                            WHEN c.artista_id = @artista_id
+                            WHEN c.artista_id = $1
                                 THEN c.artista_destino_id
                             ELSE c.artista_id
                         END AS outro_usuario_id,
@@ -680,7 +645,7 @@ ORDER BY
                         CASE
                             WHEN c.cliente_id IS NOT NULL
                                 THEN cliente.username
-                            WHEN c.artista_id = @artista_id
+                            WHEN c.artista_id = $2
                                 THEN destino.username
                             ELSE origem.username
                         END AS outro_username,
@@ -694,7 +659,7 @@ ORDER BY
                         CASE
                             WHEN c.cliente_id IS NOT NULL
                                 THEN cliente.foto_perfil
-                            WHEN c.artista_id = @artista_id
+                            WHEN c.artista_id = $3
                                 THEN perfilDestino.foto_perfil
                             ELSE perfilOrigem.foto_perfil
                         END AS outro_usuario_foto,
@@ -702,7 +667,7 @@ ORDER BY
                         m.texto AS ultima_mensagem,
                         m.data_envio AS ultima_mensagem_data
 
-                    FROM Conversas c
+                    FROM conversas c
 
                     LEFT JOIN Artistas origem
                         ON origem.id = c.artista_id
@@ -719,32 +684,31 @@ ORDER BY
                     LEFT JOIN Clientes cliente
                         ON cliente.id = c.cliente_id
 
-                    OUTER APPLY (
-                        SELECT TOP 1
-                            texto,
-                            data_envio
-                        FROM Mensagens
+                    LEFT JOIN LATERAL (
+                        SELECT texto, data_envio
+                        FROM mensagens
                         WHERE conversa_id = c.id
                         ORDER BY data_envio DESC
-                    ) m
+                        LIMIT 1
+                    ) m ON true
 
 WHERE
     (
-        c.artista_id = @artista_id
-        OR c.artista_destino_id = @artista_id
+        c.artista_id = $4
+        OR c.artista_destino_id = $5
     )
     AND NOT EXISTS (
         SELECT 1
-        FROM dbo.ArtistasBloqueados b
+        FROM artistas_bloqueados b
         WHERE
             (
                 c.cliente_id IS NULL
                 AND b.usuario_tipo = 'artista'
                 AND (
                     (
-                        b.usuario_id = @artista_id
+                        b.usuario_id = $6
                         AND b.artista_id = CASE
-                            WHEN c.artista_id = @artista_id
+                            WHEN c.artista_id = $7
                                 THEN c.artista_destino_id
                             ELSE c.artista_id
                         END
@@ -752,11 +716,11 @@ WHERE
                     OR
                     (
                         b.usuario_id = CASE
-                            WHEN c.artista_id = @artista_id
+                            WHEN c.artista_id = $8
                                 THEN c.artista_destino_id
                             ELSE c.artista_id
                         END
-                        AND b.artista_id = @artista_id
+                        AND b.artista_id = $9
                     )
                 )
             )
@@ -765,16 +729,16 @@ WHERE
                 c.cliente_id IS NOT NULL
                 AND b.usuario_tipo = 'cliente'
                 AND b.usuario_id = c.cliente_id
-                AND b.artista_id = @artista_id
+                AND b.artista_id = $10
             )
     )
 ORDER BY
     m.data_envio DESC,
     c.data_criacao DESC
 
-                `);
+                `, [usuarioId, usuarioId, usuarioId, usuarioId, usuarioId, usuarioId, usuarioId, usuarioId, usuarioId, usuarioId]);
 
-            return res.json(resultado.recordset);
+            return res.json(resultado.rows);
         }
 
         return res.status(403).json({
@@ -804,27 +768,30 @@ router.post(
                 });
             }
 
-            const conversaId = req.params.id;
+            const conversaId = Number(req.params.id);
             const usuarioId = req.usuario.id;
             const tipo = req.usuario.tipo;
 
-            const pool = await poolPromise;
+            if (!Number.isInteger(conversaId) || conversaId <= 0) {
+                return res.status(400).json({
+                    erro: "ID de conversa inválido"
+                });
+            }
 
-            const conversa = await pool.request()
-                .input("id", conversaId)
-                .query(`
+
+            const conversa = await poolNeon.query(`
                     SELECT id, artista_id, cliente_id, artista_destino_id
-                    FROM Conversas
-                    WHERE id = @id
-                `);
+                    FROM conversas
+                    WHERE id = $1
+                `, [conversaId]);
 
-            if (conversa.recordset.length === 0) {
+            if (conversa.rows.length === 0) {
                 return res.status(404).json({
                     erro: "Conversa não encontrada."
                 });
             }
 
-            const dados = conversa.recordset[0];
+            const dados = conversa.rows[0];
 
      
 const autorizado =
@@ -863,7 +830,7 @@ const outroTipo =
         : "artista";
 
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),
@@ -879,35 +846,29 @@ if (bloqueio) {
                 req.file.buffer
             );
 
-            const mensagem = await pool.request()
-                .input("conversa_id", conversaId)
-                .input("remetente_tipo", tipo)
-                .input("remetente_id", usuarioId)
-                .input("imagem", resultado.secure_url)
-                .query(`
-                    INSERT INTO Mensagens (
+            const mensagem = await poolNeon.query(`
+                    INSERT INTO mensagens (
                         conversa_id,
                         remetente_tipo,
                         remetente_id,
                         imagem
                     )
-                    OUTPUT
-                        INSERTED.id,
-                        INSERTED.conversa_id,
-                        INSERTED.remetente_tipo,
-                        INSERTED.remetente_id,
-                        INSERTED.texto,
-                        INSERTED.imagem,
-                        INSERTED.data_envio
                     VALUES (
-                        @conversa_id,
-                        @remetente_tipo,
-                        @remetente_id,
-                        @imagem
+                        $1,
+                        $2,
+                        $3,
+                        $4
                     )
-                `);
+                    RETURNING id,
+                        conversa_id,
+                        remetente_tipo,
+                        remetente_id,
+                        texto,
+                        imagem,
+                        data_envio
+                `, [conversaId, tipo, usuarioId, resultado.secure_url]);
 
-            return res.status(201).json(mensagem.recordset[0]);
+            return res.status(201).json(mensagem.rows[0]);
 
         } catch (error) {
             console.error("Erro ao enviar imagem:", error);
@@ -931,11 +892,8 @@ router.get("/conversa/:id/detalhes", verificarToken, async (req, res) => {
             });
         }
 
-        const pool = await poolPromise;
 
-        const resultado = await pool.request()
-            .input("id", conversaId)
-            .query(`
+        const resultado = await poolNeon.query(`
 SELECT
     c.id,
     c.artista_id,
@@ -947,7 +905,7 @@ SELECT
     perfilOrigem.foto_perfil AS origem_foto,
     destino.username AS destino_username,
     perfilDestino.foto_perfil AS destino_foto
-FROM Conversas c
+FROM conversas c
 LEFT JOIN Clientes cliente
     ON cliente.id = c.cliente_id
 LEFT JOIN Artistas origem
@@ -958,16 +916,16 @@ LEFT JOIN Artistas destino
     ON destino.id = c.artista_destino_id
 LEFT JOIN PerfilArtista perfilDestino
     ON perfilDestino.artista_id = destino.id
-WHERE c.id = @id
-            `);
+WHERE c.id = $1
+            `, [conversaId]);
 
-        if (resultado.recordset.length === 0) {
+        if (resultado.rows.length === 0) {
             return res.status(404).json({
                 erro: "Conversa não encontrada."
             });
         }
 
-        const conversa = resultado.recordset[0];
+        const conversa = resultado.rows[0];
 
         const autorizado =
             tipo === "cliente"
@@ -1001,7 +959,7 @@ const outroTipo =
         : "artista";
 
 const bloqueio = await existeBloqueioEntreUsuarios(
-    pool,
+    poolNeon,
     usuarioId,
     tipo,
     Number(outroId),

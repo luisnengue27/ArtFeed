@@ -1,22 +1,20 @@
 const express = require("express");
 const router = express.Router();
 
-const { poolPromise } = require("../db");
+const { poolNeon } = require("../db");
 
 router.get("/artistas", async (req, res) => {
     try {
-        const pool = await poolPromise;
-
-        const resultado = await pool.request().query(`
+        const resultado = await poolNeon.query(`
             SELECT
                 id,
                 username,
                 email,
                 data_cadastro
-            FROM Artistas
+            FROM artistas
         `);
 
-        res.json(resultado.recordset);
+        res.json(resultado.rows);
 
     } catch (erro) {
         console.error("❌ Erro ao buscar artistas:", erro);

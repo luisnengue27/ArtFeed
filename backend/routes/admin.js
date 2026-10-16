@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { poolPromise, sql } = require("../db");
+const { poolNeon } = require("../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const verificarToken = require("../middleware/authMiddleware");
@@ -16,17 +16,15 @@ async function verificarAdmin(req, res, next) {
             });
         }
 
-        const pool = await poolPromise;
+        const resultado = await poolNeon.query(
+            `SELECT id
+             FROM administradores
+             WHERE id = $1
+               AND ativo = true`,
+            [req.usuario.id]
+        );
 
-        const resultado = await pool.request()
-            .input("id", sql.Int, req.usuario.id)
-            .query(`
-                SELECT id
-                FROM dbo.Administradores
-                WHERE id = @id AND ativo = 1
-            `);
-
-        if (resultado.recordset.length === 0) {
+        if (resultado.rows.length === 0) {
             return res.status(403).json({
                 erro: "Administrador inexistente ou inativo."
             });
@@ -58,17 +56,14 @@ router.post("/login", async (req, res) => {
             });
         }
 
-        const pool = await poolPromise;
+        const resultado = await poolNeon.query(
+            `SELECT id, username, email, senha_hash, ativo
+             FROM administradores
+             WHERE email = $1`,
+            [email.trim()]
+        );
 
-        const resultado = await pool.request()
-            .input("email", sql.NVarChar(255), email.trim())
-            .query(`
-                SELECT id, username, email, senha_hash, ativo
-                FROM dbo.Administradores
-                WHERE email = @email
-            `);
-
-        const admin = resultado.recordset[0];
+        const admin = resultado.rows[0];
 
         if (!admin || !admin.ativo) {
             return res.status(401).json({
@@ -157,26 +152,21 @@ router.post(
                 });
             }
 
-            const pool = await poolPromise;
-
             const senhaHash = await bcrypt.hash(senha, 12);
 
-            await pool.request()
-                .input("username", sql.NVarChar(100), username.trim())
-                .input("email", sql.NVarChar(255), email.trim())
-                .input("senha_hash", sql.NVarChar(255), senhaHash)
-                .query(`
-                    INSERT INTO dbo.Administradores
-                        (username, email, senha_hash)
-                    VALUES
-                        (@username, @email, @senha_hash)
-                `);
+            await poolNeon.query(
+                `INSERT INTO administradores
+                    (username, email, senha_hash)
+                 VALUES
+                    ($1, $2, $3)`,
+                [username.trim(), email.trim(), senhaHash]
+            );
 
             return res.status(201).json({
                 mensagem: "Administrador cadastrado com sucesso!"
             });
         } catch (erro) {
-            if (erro.number === 2601 || erro.number === 2627) {
+            if (erro.code === '23505') {
                 return res.status(409).json({
                     erro: "Já existe um administrador com esse e-mail."
                 });
@@ -199,23 +189,22 @@ router.get(
     verificarAdmin,
     async (req, res) => {
         try {
-            const pool = await poolPromise;
 
-  
-const resultado = await pool.request().query(`
-    SELECT
-        id,
-        username,
-        email,
-        ativo,
-        data_criacao
-    FROM dbo.Administradores
-    ORDER BY data_criacao DESC
-`);
+
+ const resultado = await poolNeon.query(
+                `SELECT
+                    id,
+                    username,
+                    email,
+                    ativo,
+                    data_criacao
+                 FROM administradores
+                 ORDER BY data_criacao DESC`
+            );
 
 
             return res.json({
-                administradores: resultado.recordset
+                administradores: resultado.rows
             });
         } catch (erro) {
             console.error("Erro ao listar administradores:", erro);

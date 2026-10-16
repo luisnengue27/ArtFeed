@@ -1,15 +1,13 @@
-const { sql, poolPromise } = require("./db");
+const { poolNeon } = require("./db");
 
 async function testarBanco() {
     try {
-        const pool = await poolPromise;
-
-        const resultado = await pool.request().query(`
-            SELECT * FROM Artistas
+        const resultado = await poolNeon.query(`
+            SELECT * FROM artistas
         `);
 
         console.log("✅ Dados encontrados no banco:");
-        console.log(resultado.recordset);
+        console.log(resultado.rows);
 
     } catch (erro) {
         console.error("❌ Erro ao consultar o banco:", erro);

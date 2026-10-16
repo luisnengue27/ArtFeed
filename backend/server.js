@@ -11,7 +11,6 @@ const express = require("express");
 // Rotas
 const contatoRoutes = require("./routes/contato");
 const testeRoutes = require("./routes/teste");
-const { poolPromise } = require("./db");
 const artistasRoutes = require("./routes/artistas");
 const clientesRoutes = require("./routes/clientes");
 const chatRoutes = require("./routes/chat");

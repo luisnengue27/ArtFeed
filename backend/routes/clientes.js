@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const verificarToken = require("../middleware/authMiddleware");
@@ -45,8 +45,7 @@ const uploadFotoCliente = (buffer, clienteId) => {
         stream.end(buffer);
     });
 };
-// Temporário, até conectarmos ao SQL Server
-const { sql, poolPromise } = require("../db");
+const { poolNeon } = require("../db");
 
 // ============================
 // CADASTRO
@@ -58,23 +57,20 @@ router.post("/cadastro", async (req, res) => {
 
         if (!username || !email || !senha) {
             return res.status(400).json({
-                erro: "Todos os campos são obrigatórios."
+                erro: "Todos os campos sÃ£o obrigatÃ³rios."
             });
         }
 
-      const pool = await poolPromise;
+const clienteExistente = await poolNeon.query(
+    `SELECT id
+     FROM clientes
+     WHERE email = $1`,
+    [email]
+);
 
-const clienteExistente = await pool.request()
-    .input("email", sql.NVarChar(150), email)
-    .query(`
-        SELECT id
-        FROM Clientes
-        WHERE email = @email
-    `);
-
-       if (clienteExistente.recordset.length > 0) {
+       if (clienteExistente.rows.length > 0) {
             return res.status(409).json({
-                erro: "Este e-mail já está cadastrado."
+                erro: "Este e-mail jÃ¡ estÃ¡ cadastrado."
             });
         }
 
@@ -83,25 +79,20 @@ const clienteExistente = await pool.request()
             10
         );
 
-       const resultado = await pool.request()
-    .input("username", sql.NVarChar(50), username)
-    .input("email", sql.NVarChar(150), email)
-    .input("senha", sql.NVarChar(100), senhaCriptografada)
-    .query(`
-        INSERT INTO Clientes (
+       const resultado = await poolNeon.query(
+        `INSERT INTO clientes (
             username,
             email,
             senha
         )
-        OUTPUT INSERTED.id, INSERTED.username, INSERTED.email
         VALUES (
-            @username,
-            @email,
-            @senha
+            $1, $2, $3
         )
-    `);
+        RETURNING id, username, email`,
+        [username, email, senhaCriptografada]
+    );
 
-const novoCliente = resultado.recordset[0];
+const novoCliente = resultado.rows[0];
 
         return res.status(201).json({
             mensagem: "Cliente cadastrado com sucesso!",
@@ -132,31 +123,28 @@ router.post("/login", async (req, res) => {
 
         if (!email || !senha) {
             return res.status(400).json({
-                erro: "E-mail e senha são obrigatórios."
+                erro: "E-mail e senha sÃ£o obrigatÃ³rios."
             });
         }
 
-       const pool = await poolPromise;
+const resultado = await poolNeon.query(
+    `SELECT
+        id,
+        username,
+        email,
+        senha
+     FROM clientes
+     WHERE email = $1`,
+    [email]
+);
 
-const resultado = await pool.request()
-    .input("email", sql.NVarChar(150), email)
-    .query(`
-        SELECT
-            id,
-            username,
-            email,
-            senha
-        FROM Clientes
-        WHERE email = @email
-    `);
-
-    if (resultado.recordset.length === 0) {
+    if (resultado.rows.length === 0) {
     return res.status(401).json({
         erro: "E-mail ou senha incorretos."
     });
 }
 
-const cliente = resultado.recordset[0];
+const cliente = resultado.rows[0];
 
         const senhaCorreta = await bcrypt.compare(
             senha,
@@ -200,76 +188,60 @@ const cliente = resultado.recordset[0];
         });
     }
 });
+
 router.put("/perfil", verificarToken, async (req, res) => {
     try {
         const { username, email, senha } = req.body;
-
-        const pool = await poolPromise;
 
         // Pega o ID do cliente pelo token
         const clienteId = req.usuario.id;
 
         // Busca o cliente no banco
-        const resultado = await pool.request()
-            .input("clienteId", sql.Int, clienteId)
-            .query(`
-                SELECT
-                    id,
-                    username,
-                    email,
-                    senha
-                FROM Clientes
-                WHERE id = @clienteId
-            `);
+        const resultado = await poolNeon.query(
+            `SELECT
+                id,
+                username,
+                email,
+                senha
+             FROM clientes
+             WHERE id = $1`,
+            [clienteId]
+        );
 
-        if (resultado.recordset.length === 0) {
+        if (resultado.rows.length === 0) {
             return res.status(404).json({
-                erro: "Cliente não encontrado."
+                erro: "Cliente nÃ£o encontrado."
             });
         }
 
-        const cliente = resultado.recordset[0];
+        const cliente = resultado.rows[0];
 
-        // Verifica se o novo e-mail já pertence a outro cliente
+        // Verifica se o novo e-mail jÃ¡ pertence a outro cliente
         if (email && email !== cliente.email) {
 
-            const emailExistente = await pool.request()
-                .input("email", sql.NVarChar(150), email)
-                .input("clienteId", sql.Int, clienteId)
-                .query(`
-                    SELECT id
-                    FROM Clientes
-                    WHERE email = @email
-                    AND id <> @clienteId
-                `);
+            const emailExistente = await poolNeon.query(
+                `SELECT id
+                 FROM clientes
+                 WHERE email = $1
+                   AND id <> $2`,
+                [email, clienteId]
+            );
 
-            if (emailExistente.recordset.length > 0) {
+            if (emailExistente.rows.length > 0) {
                 return res.status(409).json({
-                    erro: "Este e-mail já está cadastrado."
+                    erro: "Este e-mail jÃ¡ estÃ¡ cadastrado."
                 });
             }
         }
 
         // Atualiza username e e-mail
-        await pool.request()
-            .input("clienteId", sql.Int, clienteId)
-            .input(
-                "username",
-                sql.NVarChar(50),
-                username || cliente.username
-            )
-            .input(
-                "email",
-                sql.NVarChar(150),
-                email || cliente.email
-            )
-            .query(`
-                UPDATE Clientes
-                SET
-                    username = @username,
-                    email = @email
-                WHERE id = @clienteId
-            `);
+        await poolNeon.query(
+            `UPDATE clientes
+             SET username = $1,
+                 email = $2
+             WHERE id = $3`,
+            [username || cliente.username, email || cliente.email, clienteId]
+        );
 
         // Atualiza a senha somente se ela foi informada
         if (senha) {
@@ -279,18 +251,12 @@ router.put("/perfil", verificarToken, async (req, res) => {
                 10
             );
 
-            await pool.request()
-                .input("clienteId", sql.Int, clienteId)
-                .input(
-                    "senha",
-                    sql.NVarChar(100),
-                    senhaCriptografada
-                )
-                .query(`
-                    UPDATE Clientes
-                    SET senha = @senha
-                    WHERE id = @clienteId
-                `);
+            await poolNeon.query(
+                `UPDATE clientes
+                 SET senha = $1
+                 WHERE id = $2`,
+                [senhaCriptografada, clienteId]
+            );
         }
 
 return res.status(200).json({
@@ -330,25 +296,23 @@ router.put(
 
             if (!req.file) {
                 return res.status(400).json({
-                    erro: "Selecione uma imagem válida."
+                    erro: "Selecione uma imagem vÃ¡lida."
                 });
             }
 
             const clienteId = req.usuario.id;
-            const pool = await poolPromise;
 
             // Verifica se o cliente existe
-            const cliente = await pool.request()
-                .input("id", sql.Int, clienteId)
-                .query(`
-                    SELECT id
-                    FROM Clientes
-                    WHERE id = @id
-                `);
+            const cliente = await poolNeon.query(
+                `SELECT id
+                 FROM clientes
+                 WHERE id = $1`,
+                [clienteId]
+            );
 
-            if (cliente.recordset.length === 0) {
+            if (cliente.rows.length === 0) {
                 return res.status(404).json({
-                    erro: "Cliente não encontrado."
+                    erro: "Cliente nÃ£o encontrado."
                 });
             }
 
@@ -359,14 +323,12 @@ router.put(
             );
 
             // Salva a URL da imagem no banco
-            await pool.request()
-                .input("id", sql.Int, clienteId)
-                .input("foto", sql.NVarChar(500), imagem.secure_url)
-                .query(`
-                    UPDATE Clientes
-                    SET foto_perfil = @foto
-                    WHERE id = @id
-                `);
+            await poolNeon.query(
+                `UPDATE clientes
+                 SET foto_perfil = $1
+                 WHERE id = $2`,
+                [imagem.secure_url, clienteId]
+            );
 
             return res.status(200).json({
                 mensagem: "Foto de perfil atualizada!",
@@ -377,11 +339,12 @@ router.put(
             console.error("Erro ao atualizar foto do cliente:", erro);
 
             return res.status(500).json({
-                erro: "Não foi possível atualizar a foto."
+                erro: "NÃ£o foi possÃ­vel atualizar a foto."
             });
         }
     }
 );
+
 // ============================
 // CONSULTAR MEU PERFIL
 // ============================
@@ -390,32 +353,29 @@ router.get("/perfil", verificarToken, async (req, res) => {
     try {
         if (req.usuario.tipo !== "cliente") {
             return res.status(403).json({
-                erro: "Esta rota é exclusiva para clientes."
+                erro: "Esta rota Ã© exclusiva para clientes."
             });
         }
 
-        const pool = await poolPromise;
+        const resultado = await poolNeon.query(
+            `SELECT
+                id,
+                username,
+                email,
+                data_cadastro,
+                foto_perfil
+             FROM clientes
+             WHERE id = $1`,
+            [req.usuario.id]
+        );
 
-        const resultado = await pool.request()
-            .input("id", sql.Int, req.usuario.id)
-            .query(`
-                SELECT
-                    id,
-                    username,
-                    email,
-                    data_cadastro,
-                    foto_perfil
-                FROM Clientes
-                WHERE id = @id
-            `);
-
-        if (resultado.recordset.length === 0) {
+        if (resultado.rows.length === 0) {
             return res.status(404).json({
-                erro: "Cliente não encontrado."
+                erro: "Cliente nÃ£o encontrado."
             });
         }
 
-        const cliente = resultado.recordset[0];
+        const cliente = resultado.rows[0];
 
         return res.json({
             id: cliente.id,
@@ -430,15 +390,14 @@ router.get("/perfil", verificarToken, async (req, res) => {
         console.error("Erro ao consultar perfil do cliente:", erro);
 
         return res.status(500).json({
-            erro: "Não foi possível buscar o perfil."
+            erro: "NÃ£o foi possÃ­vel buscar o perfil."
         });
     }
 });
 
 
-
 /* ==========================================
-   PERFIL PÚBLICO DO CLIENTE
+   PERFIL PÃšBLICO DO CLIENTE
 ========================================== */
 
 router.get("/publico/:id", verificarToken, async (req, res) => {
@@ -447,43 +406,40 @@ router.get("/publico/:id", verificarToken, async (req, res) => {
 
         if (!Number.isInteger(clienteId) || clienteId <= 0) {
             return res.status(400).json({
-                erro: "ID de cliente inválido."
+                erro: "ID de cliente invÃ¡lido."
             });
         }
 
-        const pool = await poolPromise;
+        const resultado = await poolNeon.query(
+            `SELECT
+                c.id,
+                c.username,
+                c.data_cadastro,
+                c.foto_perfil,
+                CAST(
+                    COALESCE(AVG(CAST(ac.nota AS DECIMAL(10,2))), 0)
+                    AS DECIMAL(4,2)
+                ) AS media_avaliacoes,
+                COUNT(ac.id) AS quantidade_avaliacoes
+             FROM clientes c
+             LEFT JOIN avaliacoes_clientes ac
+                 ON ac.cliente_id = c.id
+             WHERE c.id = $1
+             GROUP BY
+                 c.id,
+                 c.username,
+                 c.data_cadastro,
+                 c.foto_perfil`,
+            [clienteId]
+        );
 
-        const resultado = await pool.request()
-            .input("id", sql.Int, clienteId)
-            .query(`
-                SELECT
-                    c.id,
-                    c.username,
-                    c.data_cadastro,
-                    c.foto_perfil,
-                    CAST(
-                        COALESCE(AVG(CAST(ac.nota AS DECIMAL(10,2))), 0)
-                        AS DECIMAL(4,2)
-                    ) AS media_avaliacoes,
-                    COUNT(ac.id) AS quantidade_avaliacoes
-                FROM Clientes c
-                LEFT JOIN AvaliacoesClientes ac
-                    ON ac.cliente_id = c.id
-                WHERE c.id = @id
-                GROUP BY
-                    c.id,
-                    c.username,
-                    c.data_cadastro,
-                    c.foto_perfil
-            `);
-
-        if (resultado.recordset.length === 0) {
+        if (resultado.rows.length === 0) {
             return res.status(404).json({
-                erro: "Cliente não encontrado."
+                erro: "Cliente nÃ£o encontrado."
             });
         }
 
-        const cliente = resultado.recordset[0];
+        const cliente = resultado.rows[0];
 
         return res.json({
             id: cliente.id,
@@ -494,10 +450,10 @@ router.get("/publico/:id", verificarToken, async (req, res) => {
             quantidade_avaliacoes: cliente.quantidade_avaliacoes
         });
     } catch (erro) {
-        console.error("Erro ao buscar perfil público:", erro);
+        console.error("Erro ao buscar perfil pÃºblico:", erro);
 
         return res.status(500).json({
-            erro: "Não foi possível buscar o perfil público."
+            erro: "NÃ£o foi possÃ­vel buscar o perfil pÃºblico."
         });
     }
 });
@@ -524,98 +480,84 @@ router.put(
 
             if (!Number.isInteger(clienteId) || clienteId <= 0) {
                 return res.status(400).json({
-                    erro: "ID de cliente inválido."
+                    erro: "ID de cliente invÃ¡lido."
                 });
             }
 
             if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
                 return res.status(400).json({
-                    erro: "A nota deve ser um número inteiro de 1 a 5."
+                    erro: "A nota deve ser um nÃºmero inteiro de 1 a 5."
                 });
             }
 
-            const pool = await poolPromise;
+            const pool = await poolNeon.connect();
 
-            // Confirma que o cliente existe.
-            const cliente = await pool.request()
-                .input("id", sql.Int, clienteId)
-                .query(`
-                    SELECT id
-                    FROM Clientes
-                    WHERE id = @id
-                `);
+            try {
+                // Confirma que o cliente existe.
+                const cliente = await pool.query(
+                    `SELECT id
+                     FROM clientes
+                     WHERE id = $1`,
+                    [clienteId]
+                );
 
-            if (cliente.recordset.length === 0) {
-                return res.status(404).json({
-                    erro: "Cliente não encontrado."
-                });
-            }
+                if (cliente.rows.length === 0) {
+                    return res.status(404).json({
+                        erro: "Cliente nÃ£o encontrado."
+                    });
+                }
 
-            // Insere a avaliação ou atualiza a avaliação existente.
-            await pool.request()
-                .input("cliente_id", sql.Int, clienteId)
-                .input("artista_id", sql.Int, artistaId)
-                .input("nota", sql.TinyInt, nota)
-                .query(`
-                    UPDATE AvaliacoesClientes
-                    SET
-                        nota = @nota,
-                        data_avaliacao = GETDATE()
-                    WHERE cliente_id = @cliente_id
-                      AND artista_id = @artista_id;
+                // Insere a avaliaÃ§Ã£o ou atualiza a avaliaÃ§Ã£o existente.
+                await pool.query(
+                    `INSERT INTO avaliacoes_clientes (
+                        cliente_id,
+                        artista_id,
+                        nota
+                    )
+                    VALUES (
+                        $1, $2, $3
+                    )
+                    ON CONFLICT (cliente_id, artista_id)
+                    DO UPDATE SET nota = EXCLUDED.nota`,
+                    [clienteId, artistaId, nota]
+                );
 
-                    IF @@ROWCOUNT = 0
-                    BEGIN
-                        INSERT INTO AvaliacoesClientes (
-                            cliente_id,
-                            artista_id,
-                            nota
-                        )
-                        VALUES (
-                            @cliente_id,
-                            @artista_id,
-                            @nota
-                        );
-                    END
-                `);
-
-            // Retorna a média e a quantidade atualizadas.
-            const resumo = await pool.request()
-                .input("cliente_id", sql.Int, clienteId)
-                .query(`
-                    SELECT
+                // Retorna a mÃ©dia e a quantidade atualizadas.
+                const resumo = await pool.query(
+                    `SELECT
                         CAST(
-                            COALESCE(
-                                AVG(CAST(nota AS DECIMAL(10,2))),
-                                0
-                            ) AS DECIMAL(4,2)
+                            COALESCE(AVG(CAST(nota AS DECIMAL(10,2))), 0)
+                            AS DECIMAL(4,2)
                         ) AS media_avaliacoes,
                         COUNT(*) AS quantidade_avaliacoes
-                    FROM AvaliacoesClientes
-                    WHERE cliente_id = @cliente_id
-                `);
+                     FROM avaliacoes_clientes
+                     WHERE cliente_id = $1`,
+                    [clienteId]
+                );
 
-            return res.json({
-                mensagem: "Avaliação registrada com sucesso!",
-                media_avaliacoes: Number(
-                    resumo.recordset[0].media_avaliacoes
-                ),
-                quantidade_avaliacoes:
-                    resumo.recordset[0].quantidade_avaliacoes
-            });
+                return res.json({
+                    mensagem: "AvaliaÃ§Ã£o registrada com sucesso!",
+                    media_avaliacoes: Number(
+                        resumo.rows[0].media_avaliacoes
+                    ),
+                    quantidade_avaliacoes: resumo.rows[0].quantidade_avaliacoes
+                });
+            } finally {
+                pool.release();
+            }
 
         } catch (erro) {
             console.error("Erro ao avaliar cliente:", erro);
 
             return res.status(500).json({
-                erro: "Não foi possível registrar a avaliação."
+                erro: "NÃ£o foi possÃ­vel registrar a avaliaÃ§Ã£o."
             });
         }
     }
 );
 
 /* ==========================================
-   BUSCAR A AVALIAÇÃO DO ARTISTA LOGADO
+   BUSCAR A AVALIAÃ‡ÃƒO DO ARTISTA LOGADO
 ========================================== */
 
 router.get(
@@ -625,7 +567,7 @@ router.get(
         try {
             if (req.usuario.tipo !== "artista") {
                 return res.status(403).json({
-                    erro: "Somente artistas podem consultar esta avaliação."
+                    erro: "Somente artistas podem consultar esta avaliaÃ§Ã£o."
                 });
             }
 
@@ -634,52 +576,48 @@ router.get(
 
             if (!Number.isInteger(clienteId) || clienteId <= 0) {
                 return res.status(400).json({
-                    erro: "ID de cliente inválido."
+                    erro: "ID de cliente invÃ¡lido."
                 });
             }
 
-            const pool = await poolPromise;
+            // SÃ³ permite consultar a avaliaÃ§Ã£o se houver uma conversa.
+            const conversa = await poolNeon.query(
+                `SELECT id
+                 FROM conversas
+                 WHERE artista_id = $1
+                   AND cliente_id = $2
+                 LIMIT 1`,
+                [artistaId, clienteId]
+            );
 
-            // Só permite consultar a avaliação se houver uma conversa.
-            const conversa = await pool.request()
-                .input("artista_id", sql.Int, artistaId)
-                .input("cliente_id", sql.Int, clienteId)
-                .query(`
-                    SELECT TOP 1 id
-                    FROM Conversas
-                    WHERE artista_id = @artista_id
-                      AND cliente_id = @cliente_id
-                `);
-
-            if (conversa.recordset.length === 0) {
+            if (conversa.rows.length === 0) {
                 return res.status(403).json({
-                    erro: "Você precisa ter uma conversa com este cliente."
+                    erro: "VocÃª precisa ter uma conversa com este cliente."
                 });
             }
 
-            const resultado = await pool.request()
-                .input("artista_id", sql.Int, artistaId)
-                .input("cliente_id", sql.Int, clienteId)
-                .query(`
-                    SELECT nota
-                    FROM AvaliacoesClientes
-                    WHERE artista_id = @artista_id
-                      AND cliente_id = @cliente_id
-                `);
+            const resultado = await poolNeon.query(
+                `SELECT nota
+                 FROM avaliacoes_clientes
+                 WHERE artista_id = $1
+                   AND cliente_id = $2`,
+                [artistaId, clienteId]
+            );
 
             return res.json({
-                nota: resultado.recordset.length > 0
-                    ? resultado.recordset[0].nota
+                nota: resultado.rows.length > 0
+                    ? resultado.rows[0].nota
                     : 0
             });
 
         } catch (erro) {
-            console.error("Erro ao buscar avaliação do artista:", erro);
+            console.error("Erro ao buscar avaliaÃ§Ã£o do artista:", erro);
 
             return res.status(500).json({
-                erro: "Não foi possível consultar sua avaliação."
+                erro: "NÃ£o foi possÃ­vel consultar sua avaliaÃ§Ã£o."
             });
         }
     }
 );
+
 module.exports = router;

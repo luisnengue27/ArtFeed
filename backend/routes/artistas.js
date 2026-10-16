@@ -279,30 +279,50 @@ router.get("/", authOpcional, async (req, res) => {
         const usuarioId = req.usuario?.id ?? null;
         const tipoUsuario = req.usuario?.tipo ?? null;
 
-        const resultado = await poolNeon.query(
-            `SELECT
-                a.id, a.username, p.nome, p.preco, p.cidade,
-                p.profissao, p.tags, p.descricao, p.foto_perfil AS foto,
-                CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
-                COALESCE(av.numavaliacao, 0) AS numavaliacao
-             FROM artistas a
-             INNER JOIN perfil_artista p ON a.id = p.artista_id
-             LEFT JOIN (
-                 SELECT artista_id,
-                        AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
-                        COUNT(*) AS numavaliacao
-                 FROM avaliacoes
-                 GROUP BY artista_id
-             ) av ON av.artista_id = a.id
-             WHERE $1 IS NULL
-               OR NOT EXISTS (
-                 SELECT 1 FROM artistas_bloqueados b
-                 WHERE b.usuario_id = $1
-                   AND b.usuario_tipo = $2
-                   AND b.artista_id = a.id
-               )`,
-            [usuarioId, tipoUsuario]
-        );
+        let resultado;
+
+        if (usuarioId === null) {
+            resultado = await poolNeon.query(
+                `SELECT
+                    a.id, a.username, p.nome, p.preco, p.cidade,
+                    p.profissao, p.tags, p.descricao, p.foto_perfil AS foto,
+                    CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
+                    COALESCE(av.numavaliacao, 0) AS numavaliacao
+                 FROM artistas a
+                 INNER JOIN perfil_artista p ON a.id = p.artista_id
+                 LEFT JOIN (
+                     SELECT artista_id,
+                            AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
+                            COUNT(*) AS numavaliacao
+                     FROM avaliacoes
+                     GROUP BY artista_id
+                 ) av ON av.artista_id = a.id`
+            );
+        } else {
+            resultado = await poolNeon.query(
+                `SELECT
+                    a.id, a.username, p.nome, p.preco, p.cidade,
+                    p.profissao, p.tags, p.descricao, p.foto_perfil AS foto,
+                    CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
+                    COALESCE(av.numavaliacao, 0) AS numavaliacao
+                 FROM artistas a
+                 INNER JOIN perfil_artista p ON a.id = p.artista_id
+                 LEFT JOIN (
+                     SELECT artista_id,
+                            AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
+                            COUNT(*) AS numavaliacao
+                     FROM avaliacoes
+                     GROUP BY artista_id
+                 ) av ON av.artista_id = a.id
+                 WHERE NOT EXISTS (
+                     SELECT 1 FROM artistas_bloqueados b
+                     WHERE b.usuario_id = $1::integer
+                       AND b.usuario_tipo = $2
+                       AND b.artista_id = a.id
+                 )`
+                [usuarioId, tipoUsuario]
+            );
+        }
 
         const perfis = resultado.rows.map(perfil => ({
             ...perfil,
@@ -686,7 +706,7 @@ router.put("/perfil", verificarToken, upload.single("foto"), async (req, res) =>
             );
         }
 
-        const requestPerfil = poolNeon.query(
+        const requestPerfil = await poolNeon.query(
             `UPDATE perfil_artista
              SET nome = $1, preco = $2, cidade = $3,
                 profissao = $4, tags = $5, descricao = $6`,
@@ -788,22 +808,18 @@ router.get("/artes", authOpcional, async (req, res) => {
         const usuarioId = req.usuario?.id ?? null;
         const tipoUsuario = req.usuario?.tipo ?? null;
 
-        const resultado = await poolNeon.query(
-            `SELECT
-                Artes.id, Artes.artista_id, Artes.titulo, Artes.imagem,
-                Artes.data_publicacao, Artistas.username
-             FROM Artes
-             INNER JOIN Artistas ON Artes.artista_id = Artistas.id
-             WHERE $1 IS NULL
-               OR NOT EXISTS (
-                 SELECT 1 FROM artistas_bloqueados b
-                 WHERE b.usuario_id = $1
-                   AND b.usuario_tipo = $2
-                   AND b.artista_id = Artes.artista_id
-               )
-             ORDER BY Artes.data_publicacao DESC`,
-            [usuarioId, tipoUsuario]
-        );
+        let resultado;
+
+        if (usuarioId === null) {
+            resultado = await poolNeon.query(
+                "SELECT artes.id, artes.artista_id, artes.titulo, artes.imagem, artes.data_publicacao, artistas.username FROM artes INNER JOIN artistas ON artes.artista_id = artistas.id ORDER BY artes.data_publicacao DESC"
+            );
+        } else {
+            resultado = await poolNeon.query(
+                "SELECT artes.id, artes.artista_id, artes.titulo, artes.imagem, artes.data_publicacao, artistas.username FROM artes INNER JOIN artistas ON artes.artista_id = artistas.id WHERE NOT EXISTS (SELECT 1 FROM artistas_bloqueados b WHERE b.usuario_id = $1::integer AND b.usuario_tipo = $2 AND b.artista_id = artes.artista_id) ORDER BY artes.data_publicacao DESC",
+                [usuarioId, tipoUsuario]
+            );
+        }
 
         return res.json(resultado.rows);
 
@@ -908,23 +924,16 @@ router.get("/artes-carrossel", authOpcional, async (req, res) => {
         const usuarioId = req.usuario?.id ?? null;
         const tipoUsuario = req.usuario?.tipo ?? null;
 
-        const resultado = await poolNeon.query(
-            `SELECT
-                Artes.id, Artes.titulo, Artes.imagem,
-                Artes.artista_id, PerfilArtista.nome AS artista_nome
-             FROM Artes
-             INNER JOIN PerfilArtista
-                 ON Artes.artista_id = PerfilArtista.artista_id
-             WHERE $1 IS NULL
-               OR NOT EXISTS (
-                 SELECT 1 FROM artistas_bloqueados b
-                 WHERE b.usuario_id = $1
-                   AND b.usuario_tipo = $2
-                   AND b.artista_id = Artes.artista_id
-               )
-             ORDER BY Artes.data_publicacao DESC`,
-            [usuarioId, tipoUsuario]
-        );
+        if (usuarioId === null) {
+            resultado = await poolNeon.query(
+                "SELECT artes.id, artes.titulo, artes.imagem, artes.artista_id, perfil_artista.nome AS artista_nome FROM artes INNER JOIN perfil_artista ON artes.artista_id = perfil_artista.artista_id ORDER BY artes.data_publicacao DESC"
+            );
+        } else {
+            resultado = await poolNeon.query(
+                "SELECT artes.id, artes.titulo, artes.imagem, artes.artista_id, perfil_artista.nome AS artista_nome FROM artes INNER JOIN perfil_artista ON artes.artista_id = perfil_artista.artista_id WHERE NOT EXISTS (SELECT 1 FROM artistas_bloqueados b WHERE b.usuario_id = $1::integer AND b.usuario_tipo = $2 AND b.artista_id = artes.artista_id) ORDER BY artes.data_publicacao DESC",
+                [usuarioId, tipoUsuario]
+            );
+        }
 
         return res.json(resultado.rows);
 

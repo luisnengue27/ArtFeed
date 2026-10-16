@@ -3,35 +3,23 @@ require("dotenv").config({
     path: path.join(__dirname, ".env")
 });
 
-const sql = require("mssql");
+const { Pool } = require("pg");
 
-const config = {
-    server: process.env.AZURE_SQL_SERVER,
-    database: process.env.AZURE_SQL_DATABASE,
-    user: process.env.AZURE_SQL_USER,
-    password: process.env.AZURE_SQL_PASSWORD,
-    port: 1433,
+const poolNeon = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: true
+    }
+});
 
-    options: {
-        encrypt: true,
-        trustServerCertificate: false
-    },
+poolNeon.on("connect", () => {
+    console.log("✅ Conectado ao Neon PostgreSQL!");
+});
 
-    connectionTimeout: 30000,
-    requestTimeout: 30000
-};
-
-const poolPromise = sql.connect(config)
-    .then(pool => {
-        console.log("✅ Conectado ao Azure SQL!");
-        return pool;
-    })
-    .catch(err => {
-        console.error("❌ Erro ao conectar ao Azure SQL:", err);
-        throw err;
-    });
+poolNeon.on("error", (err) => {
+    console.error("❌ Erro no pool do Neon PostgreSQL:", err.message);
+});
 
 module.exports = {
-    sql,
-    poolPromise
+    poolNeon
 };

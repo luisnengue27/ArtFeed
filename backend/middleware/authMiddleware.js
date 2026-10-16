@@ -1,6 +1,6 @@
 
 const jwt = require("jsonwebtoken");
-const { sql, poolPromise } = require("../db");
+const { poolNeon } = require("../db");
 
 const verificarToken = async (req, res, next) => {
     let usuario;
@@ -48,34 +48,31 @@ const verificarToken = async (req, res, next) => {
 
     // 3. Verificar se o artista ou cliente continua ativo.
     try {
-        const pool = await poolPromise;
         let resultado;
 
         if (usuario.tipo === "artista") {
-            resultado = await pool.request()
-                .input("id", sql.Int, usuario.id)
-                .query(`
-                    SELECT id
-                    FROM dbo.Artistas
-                    WHERE id = @id
-                      AND ativo = 1
-                `);
+            resultado = await poolNeon.query(
+                `SELECT id
+                 FROM artistas
+                 WHERE id = $1
+                   AND ativo = true`,
+                [usuario.id]
+            );
         } else if (usuario.tipo === "cliente") {
-            resultado = await pool.request()
-                .input("id", sql.Int, usuario.id)
-                .query(`
-                    SELECT id
-                    FROM dbo.Clientes
-                    WHERE id = @id
-                      AND ativo = 1
-                `);
+            resultado = await poolNeon.query(
+                `SELECT id
+                 FROM clientes
+                 WHERE id = $1
+                   AND ativo = true`,
+                [usuario.id]
+            );
         } else {
             return res.status(403).json({
                 erro: "Tipo de usuário não autorizado."
             });
         }
 
-        if (resultado.recordset.length === 0) {
+        if (resultado.rows.length === 0) {
             return res.status(403).json({
                 erro: "Sua conta está desativada ou não existe."
             });

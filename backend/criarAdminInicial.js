@@ -5,7 +5,7 @@ require("dotenv").config({
 });
 
 const bcrypt = require("bcrypt");
-const { poolPromise, sql } = require("./db");
+const { poolNeon } = require("./db");
 const readline = require("readline");
 
 const rl = readline.createInterface({
@@ -21,14 +21,13 @@ function perguntar(texto) {
 
 async function criarAdminInicial() {
     try {
-        const pool = await poolPromise;
+        const existente = await poolNeon.query(
+            `SELECT id
+             FROM administradores
+             LIMIT 1`
+        );
 
-        const existente = await pool.request().query(`
-            SELECT TOP 1 id
-            FROM dbo.Administradores
-        `);
-
-        if (existente.recordset.length > 0) {
+        if (existente.rows.length > 0) {
             console.log(
                 "Já existe um administrador. Nenhuma conta foi criada."
             );
@@ -53,16 +52,13 @@ async function criarAdminInicial() {
 
         const senhaHash = await bcrypt.hash(senha, 12);
 
-        await pool.request()
-            .input("username", sql.NVarChar(100), username)
-            .input("email", sql.NVarChar(255), email)
-            .input("senha_hash", sql.NVarChar(255), senhaHash)
-            .query(`
-                INSERT INTO dbo.Administradores
-                    (username, email, senha_hash)
-                VALUES
-                    (@username, @email, @senha_hash)
-            `);
+        await poolNeon.query(
+            `INSERT INTO administradores
+                (username, email, senha_hash)
+             VALUES
+                ($1, $2, $3)`,
+            [username, email, senhaHash]
+        );
 
         console.log("Administrador inicial criado com sucesso!");
         console.log("Agora voce pode fazer login no ArtFeed.");
