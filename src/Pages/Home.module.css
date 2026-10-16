@@ -26,7 +26,9 @@
 }
 
 /* Título ARTFEED */
-.logon {
+
+/* Título fixo em relação à área do Home */
+.home .logon {
     position: absolute;
     left: 0;
     bottom: 130px;
@@ -45,26 +47,56 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    z-index: 1;
 }
 
-.logon h1 {
-    margin: 0;
-    text-align: center;
-    font-size: clamp(2.5rem, 8vw, 8.125rem);
-    overflow-wrap: anywhere;
-}
-
-/* Carrossel: somente ele controla esse espaçamento */
-.fix {
+/* O carrossel é posicionado separadamente */
+.home .fix {
     position: relative;
     width: 100%;
     box-sizing: border-box;
 
-    margin: 0;
-    padding: 1050px 0 50px;
+    margin-top: 0;
+    padding: 0 0 50px;
+    transform: translateY(950px);
 
     overflow: hidden;
+    z-index: 1;
 }
+
+/* Tablets */
+@media (max-width: 768px) {
+    .home .logon {
+        top: 100px;
+        bottom: auto;
+        left: 50%;
+        transform: translateX(-50%);
+
+        width: 88%;
+        height: auto;
+        min-height: 200px;
+    }
+
+    .home .fix {
+        transform: translateY(600px);
+    }
+}
+
+/* Celulares */
+@media (max-width: 480px) {
+    .home .logon {
+        top: 80px;
+        bottom: auto;
+        width: 90%;
+        min-height: 150px;
+    }
+
+    .home .fix {
+        transform: translateY(460px);
+    }
+}
+
 
 /* Ícone de conversas */
 .Balao {
