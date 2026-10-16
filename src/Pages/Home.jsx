@@ -4,40 +4,25 @@ import balao from "../assets/balao.png";
 import CarrosselArtes from "../Components/CarrosselArtes/CarrosselArtes";
 
 const Home = () => {
-  return (
+    return (
+        <div className={styles.home}>
+            <div className={styles.logon}>
+                <h1>ARTFEED</h1>
+            </div>
 
- 
-<div className={styles.home}>
+            <Link to="/conversas" aria-label="Abrir conversas">
+                <img
+                    src={balao}
+                    alt="Conversas"
+                    className={styles.Balao}
+                />
+            </Link>
 
-        <><div className={styles.logon}>
-
-      <h1>ARTFEED</h1>
-
-    </div><div>
-
-        <Link to="/conversas">
-    <img
-        src={balao}
-        alt="Conversas"
-        className={styles.Balao}
-    />
-</Link>
-
-     <div className={styles.fix}>
-        <CarrosselArtes />
-      </div>
-
-
-      </div></>
-
-
-</div>
-
-
-
-  );
+            <div className={styles.fix}>
+                <CarrosselArtes />
+            </div>
+        </div>
+    );
 };
-
-
 
 export default Home;

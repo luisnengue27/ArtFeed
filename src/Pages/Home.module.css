@@ -1,50 +1,131 @@
-.logon{
-    background-color:  pink;
-    width: 700px;
-    height: 420px;
-    position: absolute;
-    opacity: 0.7;
-    bottom: 130px;
-    border-radius: 20px;
-   
-}
-.logon h1{
-     font-size: 130px;
-    text-align: center;
-}
-
-
-
-
 .home {
+    position: relative;
     min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
 
     background-image: url("../assets/Backgrounds/cristoredentor.png");
-   
     background-repeat: no-repeat;
+    background-position: center;
     background-size: cover;
-    
-   
+
+    overflow-x: clip;
 }
+
+/* Título ARTFEED */
+.logon {
+    background-color: pink;
+    width: min(700px, 85%);
+    min-height: 250px;
+    box-sizing: border-box;
+
+    position: relative;
+    margin: 0 auto;
+    top: 12vh;
+
+    opacity: 0.7;
+    border-radius: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.logon h1 {
+    font-size: clamp(2.5rem, 8vw, 8.125rem);
+    text-align: center;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Botão de conversas */
 .Balao {
     position: fixed;
-    left: 92%;
-    width: 130px;
-    bottom: 10%;
+    right: 25px;
+    bottom: 25px;
+
+    width: clamp(55px, 9vw, 100px);
+    height: auto;
+
     z-index: 6;
+    object-fit: contain;
+    transition: transform 0.2s ease;
 }
 
+.Balao:hover {
+    transform: scale(1.08);
+}
 
- .fix {
-    position: absolute;
+/* Carrossel de artes */
+.fix {
+    position: relative;
     width: 100%;
+    box-sizing: border-box;
+    margin-top: 22vh;
+    padding: 30px 0 50px;
     overflow: hidden;
-    left: 0;
-    padding-top: 1100px;
-}
-body {
-    overflow-x: hidden;
-    padding: 0;
-    margin: 0;
 }
 
+/* Tablets */
+@media (max-width: 768px) {
+    .home {
+        background-position: center;
+    }
+
+    .logon {
+        width: 88%;
+        min-height: 200px;
+        top: 8vh;
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .fix {
+        margin-top: 16vh;
+        padding-top: 20px;
+    }
+
+    .Balao {
+        right: 18px;
+        bottom: 18px;
+        width: 70px;
+    }
+}
+
+/* Celulares */
+@media (max-width: 480px) {
+    .logon {
+        width: 90%;
+        min-height: 150px;
+        top: 6vh;
+        border-radius: 12px;
+    }
+
+    .logon h1 {
+        font-size: clamp(2rem, 11vw, 3.5rem);
+    }
+
+    .fix {
+        margin-top: 12vh;
+        padding: 15px 0 35px;
+    }
+
+    .Balao {
+        right: 14px;
+        bottom: 14px;
+        width: 58px;
+    }
+}
+
+/* Telas muito baixas, como alguns celulares na horizontal */
+@media (max-height: 500px) {
+    .logon {
+        top: 5vh;
+        min-height: 120px;
+    }
+
+    .fix {
+        margin-top: 10vh;
+    }
+}
