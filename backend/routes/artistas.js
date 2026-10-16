@@ -459,15 +459,17 @@ router.post("/:artistaId/avaliar", verificarToken, async (req, res) => {
         const clienteId = tipo === "cliente" ? avaliadorId : null;
         const artistaAvaliadorId = tipo === "artista" ? avaliadorId : null;
 
-        const existente = await poolNeon.query(
-            `SELECT id FROM avaliacoes
-             WHERE artista_id = $1
-               AND (
-                 ($2 IS NOT NULL AND cliente_id = $2)
-                 OR ($3 IS NOT NULL AND artista_avaliador_id = $3)
-               )`,
-            [artistaId, clienteId, artistaAvaliadorId]
-        );
+    const existente = await poolNeon.query(
+    `SELECT id
+     FROM avaliacoes
+     WHERE artista_id = $1
+       AND (
+         (CAST($2 AS INTEGER) IS NOT NULL AND cliente_id = $2)
+         OR
+         (CAST($3 AS INTEGER) IS NOT NULL AND artista_avaliador_id = $3)
+       )`,
+    [artistaId, clienteId, artistaAvaliadorId]
+);
 
         if (existente.rows.length > 0) {
             return res.status(409).json({
