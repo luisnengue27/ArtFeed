@@ -45,10 +45,10 @@
 
 
 /* Título ARTFEED */
+
+/* Título: não participa do fluxo que empurra o carrossel */
 .logon {
     position: absolute;
-
-    /* Mantém a posição original no desktop */
     bottom: 130px;
     left: 0;
 
@@ -64,7 +64,70 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
+    z-index: 1;
 }
+
+/* Carrossel: descer um pouco mais */
+.fix {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+
+    padding-top: 950px;
+    padding-bottom: 50px;
+
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+    .logon {
+        bottom: auto;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+
+        width: 88%;
+        height: auto;
+        min-height: 200px;
+    }
+
+    .fix {
+        padding-top: 550px;
+        padding-bottom: 30px;
+    }
+}
+
+/* Celulares */
+@media (max-width: 480px) {
+    .logon {
+        top: 80px;
+        width: 90%;
+        min-height: 150px;
+    }
+
+    .fix {
+        padding-top: 430px;
+        padding-bottom: 35px;
+    }
+}
+
+/* Telas baixas */
+@media (max-height: 500px) {
+    .logon {
+        height: auto;
+        min-height: 120px;
+        bottom: auto;
+        top: 30px;
+    }
+
+    .fix {
+        padding-top: 300px;
+    }
+}
+
 
 .logon h1 {
     margin: 0;
