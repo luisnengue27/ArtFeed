@@ -874,18 +874,16 @@ router.get("/portfolio/:artistaId", verificarToken, async (req, res) => {
             return res.status(404).json({ erro: "Artista nÃ£o encontrado" });
         }
 
-        const artistaResult = await poolNeon.query(
-            `SELECT
-                Artistas.id, Artistas.username, Artistas.email,
-                PerfilArtista.nome, PerfilArtista.preco,
-                PerfilArtista.cidade, PerfilArtista.profissao,
-                PerfilArtista.tags, PerfilArtista.descricao,
-                PerfilArtista.foto_perfil
-             FROM Artistas
-             LEFT JOIN PerfilArtista ON Artistas.id = PerfilArtista.artista_id
-             WHERE Artistas.id = $1`,
-            [artistaId]
-        );
+    const artistaResult = await poolNeon.query(
+    `SELECT
+        a.id, a.username, a.email,
+        p.nome, p.preco, p.cidade, p.profissao,
+        p.tags, p.descricao, p.foto_perfil
+     FROM artistas a
+     LEFT JOIN perfil_artista p ON a.id = p.artista_id
+     WHERE a.id = $1`,
+    [artistaId]
+);
 
         const artista = artistaResult.rows[0];
 
