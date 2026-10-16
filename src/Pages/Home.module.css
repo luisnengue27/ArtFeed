@@ -1,3 +1,4 @@
+
 .home {
     position: relative;
     min-height: 100vh;
@@ -14,32 +15,34 @@
 
 /* Título ARTFEED */
 .logon {
-    background-color: pink;
-    width: min(700px, 85%);
-    min-height: 250px;
+    position: absolute;
+
+    /* Mantém a posição original no desktop */
+    bottom: 130px;
+    left: 0;
+
+    width: min(700px, 90vw);
+    height: 420px;
     box-sizing: border-box;
 
-    position: relative;
-    margin: 0 auto;
-    top: 12vh;
-
+    background-color: pink;
     opacity: 0.7;
     border-radius: 20px;
+    padding: 20px;
 
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
 }
 
 .logon h1 {
-    font-size: clamp(2.5rem, 8vw, 8.125rem);
-    text-align: center;
     margin: 0;
+    text-align: center;
+    font-size: clamp(2.5rem, 8vw, 8.125rem);
     overflow-wrap: anywhere;
 }
 
-/* Botão de conversas */
+/* Ícone de conversas */
 .Balao {
     position: fixed;
     right: 25px;
@@ -57,33 +60,37 @@
     transform: scale(1.08);
 }
 
-/* Carrossel de artes */
+/* Área do carrossel */
 .fix {
     position: relative;
     width: 100%;
     box-sizing: border-box;
-    margin-top: 22vh;
-    padding: 30px 0 50px;
+
+    /* Espaço reservado para o título */
+    padding-top: 600px;
+    padding-bottom: 30px;
+
     overflow: hidden;
 }
 
 /* Tablets */
 @media (max-width: 768px) {
-    .home {
-        background-position: center;
-    }
-
     .logon {
+        bottom: auto;
+        top: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+
         width: 88%;
+        height: auto;
         min-height: 200px;
-        top: 8vh;
         padding: 16px;
         border-radius: 16px;
     }
 
     .fix {
-        margin-top: 16vh;
-        padding-top: 20px;
+        padding-top: 360px;
+        padding-bottom: 20px;
     }
 
     .Balao {
@@ -96,9 +103,9 @@
 /* Celulares */
 @media (max-width: 480px) {
     .logon {
+        top: 80px;
         width: 90%;
         min-height: 150px;
-        top: 6vh;
         border-radius: 12px;
     }
 
@@ -107,8 +114,8 @@
     }
 
     .fix {
-        margin-top: 12vh;
-        padding: 15px 0 35px;
+        padding-top: 280px;
+        padding-bottom: 15px;
     }
 
     .Balao {
@@ -118,14 +125,16 @@
     }
 }
 
-/* Telas muito baixas, como alguns celulares na horizontal */
+/* Telas baixas */
 @media (max-height: 500px) {
     .logon {
-        top: 5vh;
+        height: auto;
         min-height: 120px;
+        bottom: auto;
+        top: 30px;
     }
 
     .fix {
-        margin-top: 10vh;
+        padding-top: 200px;
     }
 }
