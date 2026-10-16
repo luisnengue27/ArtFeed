@@ -22,6 +22,10 @@ function Admin() {
     const [mensagem, setMensagem] = useState("");
     const [tipoMensagem, setTipoMensagem] = useState("");
 
+
+const [administradores, setAdministradores] = useState([]);
+const [carregandoLista, setCarregandoLista] = useState(false);
+const [erroLista, setErroLista] = useState("");
     useEffect(() => {
         let ativo = true;
 
@@ -75,6 +79,52 @@ function Admin() {
         };
     }, [navigate]);
 
+useEffect(() => {
+    if (!carregando && administrador) {
+        carregarAdministradores();
+    }
+}, [carregando, administrador]);
+async function carregarAdministradores() {
+    const token = localStorage.getItem("tokenAdmin");
+
+    if (!token) {
+        sair();
+        return;
+    }
+
+    setCarregandoLista(true);
+    setErroLista("");
+
+    try {
+        const resposta = await fetch(`${API_URL}/api/admin/listar`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            if (resposta.status === 401 || resposta.status === 403) {
+                sair();
+                return;
+            }
+
+            throw new Error(
+                dados.erro || "Não foi possível carregar os administradores."
+            );
+        }
+
+        setAdministradores(dados.administradores || []);
+    } catch (erro) {
+        setErroLista(
+            erro.message || "Erro ao consultar os administradores."
+        );
+    } finally {
+        setCarregandoLista(false);
+    }
+}
+
     async function cadastrarAdministrador(e) {
         e.preventDefault();
 
@@ -124,7 +174,7 @@ function Admin() {
 
             setMensagem("Administrador cadastrado com sucesso!");
             setTipoMensagem("sucesso");
-
+            await carregarAdministradores();
             setUsername("");
             setEmail("");
             setSenha("");
@@ -138,11 +188,17 @@ function Admin() {
         }
     }
 
-    function sair() {
-        localStorage.removeItem("tokenAdmin");
-        localStorage.removeItem("administrador");
-        navigate("/login/admin", { replace: true });
-    }
+ 
+function sair() {
+    localStorage.removeItem("tokenAdmin");
+    localStorage.removeItem("administrador");
+
+    // Atualiza imediatamente o Navbar
+    window.dispatchEvent(new Event("loginStatusChanged"));
+
+    navigate("/login/admin", { replace: true });
+}
+
 
     if (carregando) {
         return (
@@ -273,6 +329,67 @@ function Admin() {
                     </button>
                 </form>
             </section>
+            
+<section className="admin-secao admin-lista-secao">
+    <div className="admin-secao-titulo">
+        <div className="admin-secao-icone">♙</div>
+
+        <div>
+            <h2>Administradores cadastrados</h2>
+            <p>Consulte as contas administrativas da plataforma.</p>
+        </div>
+    </div>
+
+    {erroLista && (
+        <p className="admin-mensagem admin-mensagem-erro">
+            {erroLista}
+        </p>
+    )}
+
+    {carregandoLista ? (
+        <p>Carregando administradores...</p>
+    ) : administradores.length === 0 ? (
+        <p>Nenhum administrador encontrado.</p>
+    ) : (
+        <div className="admin-tabela-container">
+            <table className="admin-tabela">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>E-mail</th>
+                        <th>Data de cadastro</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {administradores.map((admin) => (
+                        <tr key={admin.id}>
+                            <td>{admin.username}</td>
+                            <td>{admin.email}</td>
+                            <td>
+                                {admin.data_criacao
+                                    ? new Date(admin.data_criacao)
+                                        .toLocaleDateString("pt-BR")
+                                    : "Não informada"}
+                            </td>
+                            <td>
+                                <span className={
+                                    admin.ativo
+                                        ? "admin-status admin-status-ativo"
+                                        : "admin-status admin-status-inativo"
+                                }>
+                                    {admin.ativo ? "Ativo" : "Inativo"}
+                                </span>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    )}
+</section>
+
         </main>
     );
 }

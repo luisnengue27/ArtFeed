@@ -191,6 +191,42 @@ router.post(
     }
 );
 
+ // LISTAR ADMINISTRADORES
+ // Somente administradores ativos podem acessar esta rota.
+router.get(
+    "/listar",
+    verificarToken,
+    verificarAdmin,
+    async (req, res) => {
+        try {
+            const pool = await poolPromise;
+
+  
+const resultado = await pool.request().query(`
+    SELECT
+        id,
+        username,
+        email,
+        ativo,
+        data_criacao
+    FROM dbo.Administradores
+    ORDER BY data_criacao DESC
+`);
+
+
+            return res.json({
+                administradores: resultado.recordset
+            });
+        } catch (erro) {
+            console.error("Erro ao listar administradores:", erro);
+
+            return res.status(500).json({
+                erro: "Erro interno ao listar administradores."
+            });
+        }
+    }
+);
+
 // TESTE DE AUTENTICAÇÃO ADMINISTRATIVA
 router.get(
     "/verificar",

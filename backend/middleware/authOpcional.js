@@ -1,15 +1,21 @@
+
 const jwt = require("jsonwebtoken");
+const { sql, poolPromise } = require("../db");
 
-const authOpcional = (req, res, next) => {
+const authOpcional = async (req, res, next) => {
+    const cabecalho = req.headers.authorization;
+
+    // Visitantes sem token continuam podendo acessar
+    // as rotas públicas.
+    if (!cabecalho) {
+        req.usuario = null;
+        return next();
+    }
+
+    let usuario;
+
+    // 1. Validar o token.
     try {
-        const cabecalho = req.headers.authorization;
-
-        // Se não houver token, permite continuar como visitante.
-        if (!cabecalho) {
-            req.usuario = null;
-            return next();
-        }
-
         const partes = cabecalho.split(" ");
 
         if (partes.length !== 2 || partes[0] !== "Bearer") {
@@ -18,19 +24,71 @@ const authOpcional = (req, res, next) => {
             });
         }
 
-        const token = partes[1];
-
-        const usuario = jwt.verify(
-            token,
+        usuario = jwt.verify(
+            partes[1],
             process.env.JWT_SECRET || "segredo_artfeed"
         );
 
-        req.usuario = usuario;
-
-        next();
+        if (!usuario.id || !usuario.tipo) {
+            return res.status(401).json({
+                erro: "Token inválido."
+            });
+        }
     } catch (erro) {
         return res.status(401).json({
             erro: "Token inválido ou expirado."
+        });
+    }
+
+    // 2. Administradores são verificados nas rotas administrativas.
+    if (usuario.tipo === "admin") {
+        req.usuario = usuario;
+        return next();
+    }
+
+    // 3. Conferir se a conta continua ativa.
+    try {
+        const pool = await poolPromise;
+        let resultado;
+
+        if (usuario.tipo === "artista") {
+            resultado = await pool.request()
+                .input("id", sql.Int, usuario.id)
+                .query(`
+                    SELECT id
+                    FROM dbo.Artistas
+                    WHERE id = @id
+                      AND ativo = 1
+                `);
+        } else if (usuario.tipo === "cliente") {
+            resultado = await pool.request()
+                .input("id", sql.Int, usuario.id)
+                .query(`
+                    SELECT id
+                    FROM dbo.Clientes
+                    WHERE id = @id
+                      AND ativo = 1
+                `);
+        } else {
+            return res.status(403).json({
+                erro: "Tipo de usuário não autorizado."
+            });
+        }
+
+        if (resultado.recordset.length === 0) {
+            return res.status(403).json({
+                erro: "Sua conta está desativada ou não existe."
+            });
+        }
+
+        req.usuario = usuario;
+        return next();
+
+    } catch (erro) {
+        console.error("Erro na autenticação opcional:", erro);
+
+        return res.status(500).json({
+            erro: "Não foi possível verificar o estado da conta."
         });
     }
 };

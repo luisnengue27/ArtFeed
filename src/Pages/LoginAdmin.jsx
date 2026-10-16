@@ -42,7 +42,9 @@ function LoginAdmin() {
             localStorage.setItem(
                 "administrador",
                 JSON.stringify(dados.administrador)
+                
             );
+            window.dispatchEvent(new Event("loginStatusChanged"));
 
             navigate("/admin");
         } catch (error) {

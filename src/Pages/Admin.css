@@ -189,6 +189,71 @@
     cursor: wait;
 }
 
+/* Listagem de administradores */
+.admin-lista-secao {
+    max-width: 1200px;
+    margin-top: 28px;
+}
+
+.admin-tabela-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.admin-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.admin-tabela th,
+.admin-tabela td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #eee8f5;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.admin-tabela th {
+    background: #f8f5ff;
+    color: #6841c6;
+    font-weight: 700;
+}
+
+.admin-tabela tbody tr:hover {
+    background: #fbf9ff;
+}
+
+.admin-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin-status-ativo {
+    background: #e8f7ec;
+    color: #216e39;
+}
+
+.admin-status-inativo {
+    background: #fdecec;
+    color: #b42318;
+}
+
+@media (max-width: 600px) {
+    .admin-lista-secao {
+        padding: 16px;
+    }
+
+    .admin-tabela th,
+    .admin-tabela td {
+        padding: 12px 10px;
+    }
+}
+
+
 @media (max-width: 600px) {
     .admin-pagina {
         padding: 22px 16px;

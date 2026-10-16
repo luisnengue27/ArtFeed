@@ -15,8 +15,32 @@ const Navbar = () => {
         let ativo = true;
 
         const verificarLogin = async () => {
+            const tokenAdmin = localStorage.getItem("tokenAdmin");
             const tokenArtista = localStorage.getItem("token");
             const tokenCliente = localStorage.getItem("tokenCliente");
+
+            // A sessão administrativa tem prioridade.
+            if (tokenAdmin) {
+                let admin = {};
+
+                try {
+                    admin = JSON.parse(
+                        localStorage.getItem("administrador") || "{}"
+                    );
+                } catch {
+                    admin = {};
+                }
+
+                if (ativo) {
+                    setTipoUsuario("admin");
+                    setPerfilUsuario({
+                        username: admin.username || "Administrador",
+                        foto: ""
+                    });
+                }
+
+                return;
+            }
 
             const tipo = tokenCliente
                 ? "cliente"
@@ -24,15 +48,20 @@ const Navbar = () => {
                     ? "artista"
                     : null;
 
-            setTipoUsuario(tipo);
+            if (ativo) {
+                setTipoUsuario(tipo);
+            }
 
             if (!tipo) {
-                setPerfilUsuario(null);
+                if (ativo) setPerfilUsuario(null);
                 return;
             }
 
-            const chaveLocal = tipo === "cliente" ? "cliente" : "artista";
-            const token = tipo === "cliente" ? tokenCliente : tokenArtista;
+            const chaveLocal =
+                tipo === "cliente" ? "cliente" : "artista";
+
+            const token =
+                tipo === "cliente" ? tokenCliente : tokenArtista;
 
             let perfilLocal = {};
 
@@ -44,10 +73,10 @@ const Navbar = () => {
                 perfilLocal = {};
             }
 
-            // Mostra os dados locais imediatamente, enquanto consulta a API.
             if (ativo) {
                 setPerfilUsuario({
-                    username: perfilLocal.username || perfilLocal.nome || "",
+                    username:
+                        perfilLocal.username || perfilLocal.nome || "",
                     foto:
                         perfilLocal.foto ||
                         perfilLocal.foto_perfil ||
@@ -57,9 +86,10 @@ const Navbar = () => {
             }
 
             try {
-                const rota = tipo === "cliente"
-                    ? "/api/clientes/perfil"
-                    : "/api/artistas/perfil";
+                const rota =
+                    tipo === "cliente"
+                        ? "/api/clientes/perfil"
+                        : "/api/artistas/perfil";
 
                 const resposta = await apiFetch(rota, {
                     headers: {
@@ -71,9 +101,10 @@ const Navbar = () => {
 
                 const dados = await resposta.json();
 
-                const perfil = tipo === "cliente"
-                    ? dados.cliente || dados
-                    : dados.perfil || dados;
+                const perfil =
+                    tipo === "cliente"
+                        ? dados.cliente || dados
+                        : dados.perfil || dados;
 
                 if (!ativo || !perfil) return;
 
@@ -95,7 +126,6 @@ const Navbar = () => {
 
                 setPerfilUsuario({ username, foto });
 
-                // Mantém o cache local atualizado sem apagar outros dados.
                 localStorage.setItem(
                     chaveLocal,
                     JSON.stringify({
@@ -107,35 +137,58 @@ const Navbar = () => {
                     })
                 );
             } catch (erro) {
-                console.error("Não foi possível atualizar os dados da navbar:", erro);
+                console.error(
+                    "Não foi possível atualizar os dados da navbar:",
+                    erro
+                );
             }
         };
 
         verificarLogin();
 
-        window.addEventListener("loginStatusChanged", verificarLogin);
+        window.addEventListener(
+            "loginStatusChanged",
+            verificarLogin
+        );
+
+        window.addEventListener("storage", verificarLogin);
 
         return () => {
             ativo = false;
-            window.removeEventListener("loginStatusChanged", verificarLogin);
+
+            window.removeEventListener(
+                "loginStatusChanged",
+                verificarLogin
+            );
+
+            window.removeEventListener("storage", verificarLogin);
         };
     }, []);
 
     const realizarPesquisa = (e) => {
-        if (e.key === "Enter") {
-            const termo = pesquisa.trim();
+        if (e.key !== "Enter") return;
 
-            if (!termo) return;
+        const termo = pesquisa.trim();
 
-            navigate(`/perfis?busca=${encodeURIComponent(termo)}`);
-        }
+        if (!termo) return;
+
+        navigate(`/perfis?busca=${encodeURIComponent(termo)}`);
     };
 
     const username = perfilUsuario?.username || "Meu Perfil";
     const foto = perfilUsuario?.foto;
-    const inicial = username !== "Meu Perfil"
-        ? username.charAt(0).toUpperCase()
-        : "U";
+
+    const inicial =
+        username !== "Meu Perfil"
+            ? username.charAt(0).toUpperCase()
+            : "U";
+
+    const rotaPerfil =
+        tipoUsuario === "admin"
+            ? "/admin"
+            : tipoUsuario === "cliente"
+                ? "/perfil-cliente"
+                : "/perfil-artista";
 
     return (
         <nav className="navbar">
@@ -149,6 +202,18 @@ const Navbar = () => {
                 <li><Link to="/perfis">Perfis</Link></li>
                 <li><Link to="/conexao">Conexões</Link></li>
                 <li><Link to="/FaleConosco">Fale Conosco</Link></li>
+
+                {tipoUsuario === "admin" && (
+                    <li>
+                        <Link
+                            to="/admin"
+                            className="nav-link-admin"
+                            aria-label="Abrir painel administrativo"
+                        >
+                            Administração
+                        </Link>
+                    </li>
+                )}
             </ul>
 
             <div className="nav-actions">
@@ -163,16 +228,9 @@ const Navbar = () => {
                 />
 
                 {tipoUsuario ? (
-                    <Link
-                        to={
-                            tipoUsuario === "cliente"
-                                ? "/perfil-cliente"
-                                : "/perfil-artista"
-                        }
-                        className="perfil-btn"
-                    >
+                    <Link to={rotaPerfil} className="perfil-btn">
                         <span className="perfil-btn-avatar">
-                            {foto ? (
+                            {foto && tipoUsuario !== "admin" ? (
                                 <img
                                     src={foto}
                                     alt=""
@@ -182,13 +240,17 @@ const Navbar = () => {
                                 />
                             ) : null}
 
-                            {!foto && (
+                            {(!foto || tipoUsuario === "admin") && (
                                 <span>{inicial}</span>
                             )}
                         </span>
 
                         <span className="perfil-btn-texto">
-                            <span className="perfil-btn-legenda">Minha conta</span>
+                            <span className="perfil-btn-legenda">
+                                {tipoUsuario === "admin"
+                                    ? "Área administrativa"
+                                    : "Minha conta"}
+                            </span>
                             <strong>{username}</strong>
                         </span>
 
