@@ -34,7 +34,7 @@
     bottom: 130px;
     top: auto;
     transform: none;
-
+     font-size: 27px;
     width: min(700px, 90vw);
     height: 420px;
     box-sizing: border-box;
