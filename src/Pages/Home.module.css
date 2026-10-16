@@ -61,80 +61,39 @@
 }
 
 /* Área do carrossel */
+
+/* Área do carrossel de artes */
 .fix {
     position: relative;
     width: 100%;
     box-sizing: border-box;
 
-    /* Espaço reservado para o título */
-    padding-top: 600px;
-    padding-bottom: 30px;
+    /* Desce o carrossel para o fundo do Cristo */
+    padding-top: 850px;
+    padding-bottom: 50px;
 
     overflow: hidden;
 }
 
 /* Tablets */
 @media (max-width: 768px) {
-    .logon {
-        bottom: auto;
-        top: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-
-        width: 88%;
-        height: auto;
-        min-height: 200px;
-        padding: 16px;
-        border-radius: 16px;
-    }
-
     .fix {
-        padding-top: 360px;
-        padding-bottom: 20px;
-    }
-
-    .Balao {
-        right: 18px;
-        bottom: 18px;
-        width: 70px;
+        padding-top: 500px;
+        padding-bottom: 30px;
     }
 }
 
 /* Celulares */
 @media (max-width: 480px) {
-    .logon {
-        top: 80px;
-        width: 90%;
-        min-height: 150px;
-        border-radius: 12px;
-    }
-
-    .logon h1 {
-        font-size: clamp(2rem, 11vw, 3.5rem);
-    }
-
     .fix {
-        padding-top: 280px;
-        padding-bottom: 15px;
-    }
-
-    .Balao {
-        right: 14px;
-        bottom: 14px;
-        width: 58px;
+        padding-top: 380px;
+        padding-bottom: 35px;
     }
 }
 
 /* Telas baixas */
 @media (max-height: 500px) {
-    .logon {
-        height: auto;
-        min-height: 120px;
-        bottom: auto;
-        top: 30px;
-    }
-
     .fix {
-        padding-top: 200px;
+        padding-top: 250px;
     }
 }
