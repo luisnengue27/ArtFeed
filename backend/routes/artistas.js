@@ -1187,6 +1187,75 @@ router.post("/:artistaId/denunciar", verificarToken, async (req, res) => {
         return res.status(500).json({ erro: "Erro ao registrar denÃºncia." });
     }
 });
+// ============================
+// LISTAR ARTISTAS QUE EU SIGO
+// ============================
+
+router.get("/meus-seguidos", verificarToken, async (req, res) => {
+    try {
+        const usuarioId = Number(req.usuario.id);
+        const tipoUsuario = req.usuario.tipo;
+
+        if (
+            !Number.isSafeInteger(usuarioId) ||
+            usuarioId <= 0 ||
+            !["artista", "cliente"].includes(tipoUsuario)
+        ) {
+            return res.status(403).json({
+                erro: "Usuário não autorizado."
+            });
+        }
+
+        let resultado;
+
+        if (tipoUsuario === "artista") {
+            resultado = await poolNeon.query(
+                `SELECT
+                    a.id,
+                    a.username,
+                    p.nome,
+                    p.foto_perfil AS foto,
+                    p.profissao,
+                    p.cidade
+                 FROM seguidores s
+                 INNER JOIN artistas a
+                    ON a.id = s.artista_id
+                 LEFT JOIN perfil_artista p
+                    ON p.artista_id = a.id
+                 WHERE s.artista_seguidor_id = $1
+                 ORDER BY s.id DESC`,
+                [usuarioId]
+            );
+        } else {
+            resultado = await poolNeon.query(
+                `SELECT
+                    a.id,
+                    a.username,
+                    p.nome,
+                    p.foto_perfil AS foto,
+                    p.profissao,
+                    p.cidade
+                 FROM seguidores s
+                 INNER JOIN artistas a
+                    ON a.id = s.artista_id
+                 LEFT JOIN perfil_artista p
+                    ON p.artista_id = a.id
+                 WHERE s.cliente_id = $1
+                 ORDER BY s.id DESC`,
+                [usuarioId]
+            );
+        }
+
+        return res.status(200).json(resultado.rows);
+
+    } catch (erro) {
+        console.error("Erro ao listar artistas seguidos:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao carregar os artistas seguidos."
+        });
+    }
+});
 
 module.exports = router;
 

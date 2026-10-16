@@ -172,7 +172,7 @@ const Conexao = () => {
                 </button>
 
                 <button className="nengue"
-    type="buttonn"
+    type="button"
     onClick={() => navigate("/artistas-bloqueados")}
 >
     Artistas bloqueados
