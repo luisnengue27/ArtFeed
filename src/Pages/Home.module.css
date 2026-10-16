@@ -1,23 +1,19 @@
 
-
 .home {
     position: relative;
     width: 100%;
     min-height: 100vh;
     box-sizing: border-box;
     overflow-x: clip;
-
-    /* O fundo terá uma altura independente do conteúdo */
-    background-image: none;
+    background: none;
+    isolation: isolate;
 }
 
-/* Camada visual do fundo */
+/* Fundo do Cristo: não aumenta com o carrossel */
 .home::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+    inset: 0 0 auto;
     height: 100vh;
 
     background-image: url("../assets/Backgrounds/cristoredentor.png");
@@ -25,32 +21,17 @@
     background-position: center top;
     background-size: cover;
 
-    z-index: 0;
+    z-index: -1;
     pointer-events: none;
 }
 
-/* Mantém o conteúdo acima do fundo */
-.logon,
-.fix {
-    position: relative;
-}
-
-.logon {
-    z-index: 1;
-}
-
-.fix {
-    z-index: 1;
-}
-
-
 /* Título ARTFEED */
-
-/* Título: não participa do fluxo que empurra o carrossel */
 .logon {
     position: absolute;
-    bottom: 130px;
     left: 0;
+    bottom: 130px;
+    top: auto;
+    transform: none;
 
     width: min(700px, 90vw);
     height: 420px;
@@ -64,70 +45,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-
-    z-index: 1;
 }
-
-/* Carrossel: descer um pouco mais */
-.fix {
-    position: relative;
-    width: 100%;
-    box-sizing: border-box;
-
-    padding-top: 950px;
-    padding-bottom: 50px;
-
-    overflow: hidden;
-    z-index: 1;
-}
-
-/* Tablets */
-@media (max-width: 768px) {
-    .logon {
-        bottom: auto;
-        top: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-
-        width: 88%;
-        height: auto;
-        min-height: 200px;
-    }
-
-    .fix {
-        padding-top: 550px;
-        padding-bottom: 30px;
-    }
-}
-
-/* Celulares */
-@media (max-width: 480px) {
-    .logon {
-        top: 80px;
-        width: 90%;
-        min-height: 150px;
-    }
-
-    .fix {
-        padding-top: 430px;
-        padding-bottom: 35px;
-    }
-}
-
-/* Telas baixas */
-@media (max-height: 500px) {
-    .logon {
-        height: auto;
-        min-height: 120px;
-        bottom: auto;
-        top: 30px;
-    }
-
-    .fix {
-        padding-top: 300px;
-    }
-}
-
 
 .logon h1 {
     margin: 0;
@@ -136,48 +54,16 @@
     overflow-wrap: anywhere;
 }
 
-/* Mantém o título independente do carrossel */
-.home .logon {
-    position: absolute;
-    left: 0;
-    bottom: 130px;
-    top: auto;
-    transform: none;
-    margin: 0;
-}
-
-/* O carrossel ocupa espaço no fluxo da página */
-.home .fix {
+/* Carrossel: somente ele controla esse espaçamento */
+.fix {
     position: relative;
-    margin-top: 0;
-    padding-top: 1050px;
-    padding-bottom: 50px;
-}
+    width: 100%;
+    box-sizing: border-box;
 
-/* Tablet */
-@media (max-width: 768px) {
-    .home .logon {
-        top: 100px;
-        bottom: auto;
-        left: 50%;
-        transform: translateX(-50%);
-    }
+    margin: 0;
+    padding: 1050px 0 50px;
 
-    .home .fix {
-        padding-top: 600px;
-    }
-}
-
-/* Celular */
-@media (max-width: 480px) {
-    .home .logon {
-        top: 80px;
-        bottom: auto;
-    }
-
-    .home .fix {
-        padding-top: 460px;
-    }
+    overflow: hidden;
 }
 
 /* Ícone de conversas */
@@ -198,43 +84,67 @@
     transform: scale(1.08);
 }
 
-/* Área do carrossel */
-
-/* Área do carrossel de artes */
-
-/* Carrossel de artes */
-.fix {
-    position: relative;
-    width: 100%;
-    box-sizing: border-box;
-
-    /* Empurra o carrossel para baixo e aumenta a página */
-    margin-top: 0;
-    padding-top: 850px;
-    padding-bottom: 50px;
-
-    overflow: hidden;
-}
-
 /* Tablets */
 @media (max-width: 768px) {
+    .logon {
+        top: 100px;
+        bottom: auto;
+        left: 50%;
+        transform: translateX(-50%);
+
+        width: 88%;
+        height: auto;
+        min-height: 200px;
+        border-radius: 16px;
+    }
+
     .fix {
-        padding-top: 500px;
+        padding-top: 600px;
         padding-bottom: 30px;
+    }
+
+    .Balao {
+        right: 18px;
+        bottom: 18px;
+        width: 70px;
     }
 }
 
 /* Celulares */
 @media (max-width: 480px) {
+    .logon {
+        top: 80px;
+        width: 90%;
+        min-height: 150px;
+        border-radius: 12px;
+    }
+
+    .logon h1 {
+        font-size: clamp(2rem, 11vw, 3.5rem);
+    }
+
     .fix {
-        padding-top: 380px;
+        padding-top: 460px;
         padding-bottom: 35px;
+    }
+
+    .Balao {
+        right: 14px;
+        bottom: 14px;
+        width: 58px;
     }
 }
 
 /* Telas baixas */
 @media (max-height: 500px) {
+    .logon {
+        height: auto;
+        min-height: 120px;
+        top: 30px;
+        bottom: auto;
+    }
+
     .fix {
-        padding-top: 250px;
+        padding-top: 300px;
     }
 }
