@@ -298,31 +298,31 @@ router.get("/", authOpcional, async (req, res) => {
                      GROUP BY artista_id
                  ) av ON av.artista_id = a.id`
             );
-        } else {
-            resultado = await poolNeon.query(
-                `SELECT
-                    a.id, a.username, p.nome, p.preco, p.cidade,
-                    p.profissao, p.tags, p.descricao, p.foto_perfil AS foto,
-                    CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
-                    COALESCE(av.numavaliacao, 0) AS numavaliacao
-                 FROM artistas a
-                 INNER JOIN perfil_artista p ON a.id = p.artista_id
-                 LEFT JOIN (
-                     SELECT artista_id,
-                            AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
-                            COUNT(*) AS numavaliacao
-                     FROM avaliacoes
-                     GROUP BY artista_id
-                 ) av ON av.artista_id = a.id
-                 WHERE NOT EXISTS (
-                     SELECT 1 FROM artistas_bloqueados b
-                     WHERE b.usuario_id = $1::integer
-                       AND b.usuario_tipo = $2
-                       AND b.artista_id = a.id
-                 )`
-                [usuarioId, tipoUsuario]
-            );
-        }
+       } else {
+    resultado = await poolNeon.query(
+        `SELECT
+            a.id, a.username, p.nome, p.preco, p.cidade,
+            p.profissao, p.tags, p.descricao, p.foto_perfil AS foto,
+            CAST(COALESCE(av.avaliacao, 0) AS DECIMAL(3,1)) AS avaliacao,
+            COALESCE(av.numavaliacao, 0) AS numavaliacao
+         FROM artistas a
+         INNER JOIN perfil_artista p ON a.id = p.artista_id
+         LEFT JOIN (
+             SELECT artista_id,
+                    AVG(CAST(nota AS DECIMAL(4,2))) AS avaliacao,
+                    COUNT(*) AS numavaliacao
+             FROM avaliacoes
+             GROUP BY artista_id
+         ) av ON av.artista_id = a.id
+         WHERE NOT EXISTS (
+             SELECT 1 FROM artistas_bloqueados b
+             WHERE b.usuario_id = $1::integer
+               AND b.usuario_tipo = $2
+               AND b.artista_id = a.id
+         )`,
+        [usuarioId, tipoUsuario]
+    );
+}
 
         const perfis = resultado.rows.map(perfil => ({
             ...perfil,
