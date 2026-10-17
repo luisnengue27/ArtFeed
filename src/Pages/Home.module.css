@@ -7,9 +7,14 @@
     overflow-x: clip;
     background: none;
     isolation: isolate;
+
+    /* Reserva espaço para o conteúdo e o carrossel */
+    display: flex;
+    flex-direction: column;
+    padding-top: 100vh;
 }
 
-/* Fundo do Cristo: não aumenta com o carrossel */
+/* Fundo do Cristo Redentor */
 .home::before {
     content: "";
     position: absolute;
@@ -27,14 +32,13 @@
 
 /* Título ARTFEED */
 
-/* Título fixo em relação à área do Home */
 .home .logon {
     position: absolute;
     left: 0;
-    bottom: 130px;
-    top: auto;
+    
+    top: 200px;
     transform: none;
-     font-size: 27px;
+
     width: min(700px, 90vw);
     height: 420px;
     box-sizing: border-box;
@@ -48,58 +52,23 @@
     align-items: center;
     justify-content: center;
 
+    font-size: 27px;
     z-index: 1;
 }
 
-/* O carrossel é posicionado separadamente */
+
+/* Carrossel no fluxo normal da página */
 .home .fix {
     position: relative;
     width: 100%;
     box-sizing: border-box;
-
-    margin-top: 0;
     padding: 0 0 50px;
-    transform: translateY(950px);
-
     overflow: hidden;
     z-index: 1;
 }
 
-/* Tablets */
-@media (max-width: 768px) {
-    .home .logon {
-        top: 100px;
-        bottom: auto;
-        left: 50%;
-        transform: translateX(-50%);
-
-        width: 88%;
-        height: auto;
-        min-height: 200px;
-    }
-
-    .home .fix {
-        transform: translateY(600px);
-    }
-}
-
-/* Celulares */
-@media (max-width: 480px) {
-    .home .logon {
-        top: 80px;
-        bottom: auto;
-        width: 90%;
-        min-height: 150px;
-    }
-
-    .home .fix {
-        transform: translateY(460px);
-    }
-}
-
-
 /* Ícone de conversas */
-.Balao {
+.home .Balao {
     position: fixed;
     right: 25px;
     bottom: 25px;
@@ -107,35 +76,37 @@
     width: clamp(55px, 9vw, 100px);
     height: auto;
 
-    z-index: 6;
+    display: block;
     object-fit: contain;
+    z-index: 1000;
     transition: transform 0.2s ease;
 }
 
-.Balao:hover {
+.home .Balao:hover {
     transform: scale(1.08);
 }
 
 /* Tablets */
 @media (max-width: 768px) {
-    .logon {
+    .home {
+        padding-top: 600px;
+    }
+
+    .home .logon {
         top: 100px;
-        bottom: auto;
         left: 50%;
         transform: translateX(-50%);
 
         width: 88%;
         height: auto;
         min-height: 200px;
-        border-radius: 16px;
     }
 
-    .fix {
-        padding-top: 600px;
+    .home .fix {
         padding-bottom: 30px;
     }
 
-    .Balao {
+    .home .Balao {
         right: 18px;
         bottom: 18px;
         width: 70px;
@@ -144,23 +115,25 @@
 
 /* Celulares */
 @media (max-width: 480px) {
-    .logon {
+    .home {
+        padding-top: 460px;
+    }
+
+    .home .logon {
         top: 80px;
         width: 90%;
         min-height: 150px;
-        border-radius: 12px;
     }
 
-    .logon h1 {
+    .home .logon h1 {
         font-size: clamp(2rem, 11vw, 3.5rem);
     }
 
-    .fix {
-        padding-top: 460px;
+    .home .fix {
         padding-bottom: 35px;
     }
 
-    .Balao {
+    .home .Balao {
         right: 14px;
         bottom: 14px;
         width: 58px;
@@ -169,14 +142,13 @@
 
 /* Telas baixas */
 @media (max-height: 500px) {
-    .logon {
+    .home {
+        padding-top: 300px;
+    }
+
+    .home .logon {
         height: auto;
         min-height: 120px;
         top: 30px;
-        bottom: auto;
-    }
-
-    .fix {
-        padding-top: 300px;
     }
 }
