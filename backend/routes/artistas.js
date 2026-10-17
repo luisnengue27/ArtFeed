@@ -362,7 +362,7 @@ router.post("/:artistaId/seguir", verificarToken, async (req, res) => {
         if (tipoUsuario === "artista") {
             if (usuarioId === artistaId) {
                 return res.status(400).json({
-                    erro: "VocÃª não pode seguir a si mesmo."
+                    erro: "Voce não pode seguir a si mesmo."
                 });
             }
 
@@ -432,12 +432,12 @@ router.post("/:artistaId/avaliar", verificarToken, async (req, res) => {
             avaliadorId <= 0 ||
             !["artista", "cliente"].includes(tipo)
         ) {
-            return res.status(403).json({ erro: "UsuÃ¡rio não autorizado." });
+            return res.status(403).json({ erro: "usuario não autorizado." });
         }
 
         if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
             return res.status(400).json({
-                erro: "A nota deve ser um nÃºmero inteiro de 1 a 5."
+                erro: "A nota deve ser um numero inteiro de 1 a 5."
             });
         }
 
@@ -473,7 +473,7 @@ router.post("/:artistaId/avaliar", verificarToken, async (req, res) => {
 
         if (existente.rows.length > 0) {
             return res.status(409).json({
-                erro: "VocÃª já avaliou este artista."
+                erro: "Voce já avaliou este artista."
             });
         }
 
@@ -502,7 +502,7 @@ router.post("/:artistaId/avaliar", verificarToken, async (req, res) => {
 
     } catch (erro) {
         console.error("Erro ao avaliar artista:", erro);
-        return res.status(500).json({ erro: "Erro ao registrar avaliaÃ§Ã£o." });
+        return res.status(500).json({ erro: "Erro ao registrar avaliação." });
     }
 });
 // ============================
@@ -528,12 +528,12 @@ router.delete("/:artistaId/seguir", verificarToken, async (req, res) => {
 
             if (resultado.rowCount === 0) {
                 return res.status(404).json({
-                    erro: "VocÃª não segue este artista."
+                    erro: "Voce não segue este artista."
                 });
             }
 
             return res.status(200).json({
-                mensagem: "VocÃª deixou de seguir o artista."
+                mensagem: "Voce deixou de seguir o artista."
             });
         }
 
@@ -866,7 +866,7 @@ router.get("/portfolio/:artistaId", verificarToken, async (req, res) => {
 
         if (bloqueio.rows.length > 0) {
             return res.status(404).json({
-                erro: "Este portfÃ³lio nÃ£o estÃ¡ disponÃ­vel."
+                erro: "Este portofolio nao esta disponivel."
             });
         }
 
@@ -876,7 +876,7 @@ router.get("/portfolio/:artistaId", verificarToken, async (req, res) => {
         );
 
         if (artistaBase.rows.length === 0) {
-            return res.status(404).json({ erro: "Artista nÃ£o encontrado" });
+            return res.status(404).json({ erro: "Artista nao encontrado" });
         }
 
     const artistaResult = await poolNeon.query(
@@ -894,7 +894,7 @@ router.get("/portfolio/:artistaId", verificarToken, async (req, res) => {
 
         if (!artista.nome) {
             return res.status(404).json({
-                erro: "Este artista ainda nÃ£o possui um perfil."
+                erro: "Este artista ainda nao possui um perfil."
             });
         }
 
@@ -914,7 +914,7 @@ router.get("/portfolio/:artistaId", verificarToken, async (req, res) => {
         return res.json({ artista, artes });
 
     } catch (error) {
-        console.error("Erro ao buscar portfÃ³lio:", error);
+        console.error("Erro ao buscar portifolio:", error);
         return res.status(500).json({ erro: "Erro ao buscar portfÃ³lio" });
     }
 });
@@ -964,12 +964,12 @@ router.post("/:artistaId/bloquear", verificarToken, async (req, res) => {
         }
 
         if (!["artista", "cliente"].includes(tipo)) {
-            return res.status(403).json({ erro: "UsuÃ¡rio nÃ£o autorizado." });
+            return res.status(403).json({ erro: "usuario nao autorizado." });
         }
 
         if (tipo === "artista" && usuarioId === artistaId) {
             return res.status(400).json({
-                erro: "VocÃª não pode bloquear a prÃ³pria conta."
+                erro: "Voce não pode bloquear a propria conta."
             });
         }
 
@@ -979,7 +979,7 @@ router.post("/:artistaId/bloquear", verificarToken, async (req, res) => {
         );
 
         if (artista.rows.length === 0) {
-            return res.status(404).json({ erro: "Artista nÃ£o encontrado." });
+            return res.status(404).json({ erro: "Artista nao encontrado." });
         }
 
         const existente = await poolNeon.query(
@@ -992,7 +992,7 @@ router.post("/:artistaId/bloquear", verificarToken, async (req, res) => {
 
         if (existente.rows.length > 0) {
             return res.status(409).json({
-                erro: "VocÃª jÃ¡ bloqueou este artista."
+                erro: "voce ja bloqueou este artista."
             });
         }
 
@@ -1022,7 +1022,7 @@ router.get("/bloqueados", verificarToken, async (req, res) => {
         const tipo = req.usuario.tipo;
 
         if (!["artista", "cliente"].includes(tipo)) {
-            return res.status(403).json({ erro: "UsuÃ¡rio nÃ£o autorizado." });
+            return res.status(403).json({ erro: "usuario nao autorizado." });
         }
 
         const resultado = await poolNeon.query(
@@ -1060,11 +1060,11 @@ router.delete("/bloqueados/:artistaId", verificarToken, async (req, res) => {
             !Number.isSafeInteger(artistaId) || artistaId <= 0 ||
             !Number.isSafeInteger(usuarioId) || usuarioId <= 0
         ) {
-            return res.status(400).json({ erro: "ID invÃ¡lido." });
+            return res.status(400).json({ erro: "id invalido." });
         }
 
         if (!["artista", "cliente"].includes(tipo)) {
-            return res.status(403).json({ erro: "UsuÃ¡rio nÃ£o autorizado." });
+            return res.status(403).json({ erro: "usuario nao autorizado." });
         }
 
         const resultado = await poolNeon.query(
@@ -1077,7 +1077,7 @@ router.delete("/bloqueados/:artistaId", verificarToken, async (req, res) => {
 
         if (resultado.rowCount === 0) {
             return res.status(404).json({
-                erro: "Este artista nÃ£o estÃ¡ na sua lista de bloqueados."
+                erro: "Este artista não esta na sua lista de bloqueados."
             });
         }
 
@@ -1094,7 +1094,11 @@ router.delete("/bloqueados/:artistaId", verificarToken, async (req, res) => {
 // DENUNCIAR ARTISTA
 // ============================
 
-router.post("/:artistaId/denunciar", verificarToken, async (req, res) => {
+router.post(
+    "/:artistaId/denunciar",
+    verificarToken,
+    upload.array("imagens", 5),
+    async (req, res) => {
     try {
         const artistaId = Number(req.params.artistaId);
         const denuncianteId = Number(req.usuario.id);
@@ -1107,22 +1111,22 @@ router.post("/:artistaId/denunciar", verificarToken, async (req, res) => {
             !Number.isSafeInteger(artistaId) || artistaId <= 0 ||
             !Number.isSafeInteger(denuncianteId) || denuncianteId <= 0
         ) {
-            return res.status(400).json({ erro: "ID invÃ¡lido." });
+            return res.status(400).json({ erro: "ID invalido." });
         }
 
         if (!["artista", "cliente"].includes(tipo)) {
-            return res.status(403).json({ erro: "UsuÃ¡rio nÃ£o autorizado." });
+            return res.status(403).json({ erro: "usuario não autorizado." });
         }
 
         if (!motivo) {
             return res.status(400).json({
-                erro: "Explique o motivo da denÃºncia."
+                erro: "Explique o motivo da denuncia."
             });
         }
 
         if (motivo.length > 5000) {
             return res.status(400).json({
-                erro: "O motivo deve ter no mÃ¡ximo 5000 caracteres."
+                erro: "O motivo deve ter no maximo 5000 caracteres."
             });
         }
 
@@ -1145,7 +1149,7 @@ router.post("/:artistaId/denunciar", verificarToken, async (req, res) => {
 
         if (tipo === "artista" && denuncianteId === artistaId) {
             return res.status(400).json({
-                erro: "VocÃª não pode denunciar a prÃ³pria conta."
+                erro: "Voce não pode denunciar a propria conta."
             });
         }
 
