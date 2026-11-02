@@ -24,7 +24,8 @@ const mensagensContainerRef = useRef(null);
 const ultimaMensagemIdRef = useRef(null);
     const pegarToken = () =>
         localStorage.getItem("tokenCliente") ||
-        localStorage.getItem("token");
+        localStorage.getItem("token") ||
+        localStorage.getItem("tokenAdmin")
 
 useEffect(() => {
     const overflowAnterior = document.body.style.overflow;

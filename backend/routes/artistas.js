@@ -845,30 +845,36 @@ router.get("/portfolio/:artistaId", verificarToken, async (req, res) => {
             return res.status(400).json({ erro: "ID do artista inválido" });
         }
 
-        const usuarioId = req.usuario.id;
-        const tipoUsuario = req.usuario.tipo;
+    
+const usuarioId = req.usuario.id;
+const tipoUsuario = req.usuario.tipo;
 
-        if (tipoUsuario !== "artista" && tipoUsuario !== "cliente") {
-            return res.status(403).json({
-                erro: "Tipo de usuário inválido."
-            });
-        }
+// Administradores também podem visualizar portfólios.
+if (!["artista", "cliente", "admin"].includes(tipoUsuario)) {
+    return res.status(403).json({
+        erro: "Tipo de usuário inválido."
+    });
+}
 
-        const bloqueio = await poolNeon.query(
-            `SELECT id
-             FROM artistas_bloqueados
-             WHERE usuario_id = $1
-               AND usuario_tipo = $2
-               AND artista_id = $3
-             LIMIT 1`,
-            [usuarioId, tipoUsuario, artistaId]
-        );
+// Verificar bloqueios somente para artistas e clientes.
+if (tipoUsuario !== "admin") {
+    const bloqueio = await poolNeon.query(
+        `SELECT id
+         FROM artistas_bloqueados
+         WHERE usuario_id = $1
+           AND usuario_tipo = $2
+           AND artista_id = $3
+         LIMIT 1`,
+        [usuarioId, tipoUsuario, artistaId]
+    );
 
-        if (bloqueio.rows.length > 0) {
-            return res.status(404).json({
-                erro: "Este portofolio nao esta disponivel."
-            });
-        }
+    if (bloqueio.rows.length > 0) {
+        return res.status(404).json({
+            erro: "Este portfólio não está disponível."
+        });
+    }
+}
+
 
         const artistaBase = await poolNeon.query(
             `SELECT id, username, email FROM artistas WHERE id = $1`,

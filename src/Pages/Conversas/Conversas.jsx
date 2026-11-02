@@ -16,15 +16,13 @@ const Conversas = () => {
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState("");
 
-
-    const pegarToken = () => {
-
-        return (
-            localStorage.getItem("tokenCliente") ||
-            localStorage.getItem("token")
-        );
-    };
-
+const pegarToken = () => {
+    return (
+        localStorage.getItem("tokenAdmin") ||
+        localStorage.getItem("tokenCliente") ||
+        localStorage.getItem("token")
+    );
+};
 
     useEffect(() => {
 
@@ -32,7 +30,12 @@ const Conversas = () => {
 
             try {
 
-                const token = pegarToken();
+            const tokenAdmin = localStorage.getItem("tokenAdmin");
+const token = pegarToken();
+
+const endpoint = tokenAdmin
+    ? `${API_URL}/api/chat/admin/conversas`
+    : `${API_URL}/api/chat/conversas`;
 
                 if (!token) {
                     navigate("/login");
@@ -40,8 +43,8 @@ const Conversas = () => {
                 }
 
 
-                const resposta = await fetch(
-                    `${API_URL}/api/chat/conversas`,
+        const resposta = await fetch(
+    endpoint,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -52,9 +55,7 @@ const Conversas = () => {
 
               const dados = await resposta.json();
 
-console.log("STATUS CONVERSAS:", resposta.status);
-console.log("CONVERSAS RECEBIDAS:", dados);
-console.log("TIPO DOS DADOS:", Array.isArray(dados));
+
 
 
                 if (!resposta.ok) {

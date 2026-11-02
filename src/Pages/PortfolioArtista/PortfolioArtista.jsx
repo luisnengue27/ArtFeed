@@ -49,21 +49,16 @@ useEffect(() => {
 
             try {
 
-             const tokenCliente =
-    localStorage.getItem("tokenCliente");
+          const tokenAdmin = localStorage.getItem("tokenAdmin");
+const tokenCliente = localStorage.getItem("tokenCliente");
+const tokenArtista = localStorage.getItem("token");
 
-const tokenArtista =
-    localStorage.getItem("token");
-
-const token = tokenCliente || tokenArtista;
-
+const token = tokenAdmin || tokenCliente || tokenArtista;
 if (!token) {
     navigate("/login");
     return;
 }
-console.log("TOKEN CLIENTE:", localStorage.getItem("tokenCliente"));
-console.log("TOKEN ARTISTA:", localStorage.getItem("token"));
-console.log("ID DO ARTISTA:", id);
+
 const resposta = await fetch(
     `${API_URL}/api/artistas/portfolio/${id}`,
     {
@@ -188,74 +183,72 @@ const resposta = await fetch(
         ⚙️ Gerenciar portfólio
     </button>
 ) : (
-    <button
-        className={styles.botaoChat}
-        onClick={async () => {
-            try {
-                const token =
-                    localStorage.getItem("tokenCliente") ||
-                    localStorage.getItem("token");
+   
+<button
+    className={styles.botaoChat}
+    onClick={async () => {
+        try {
+            const tokenAdmin = localStorage.getItem("tokenAdmin");
+            const tokenCliente = localStorage.getItem("tokenCliente");
+            const tokenArtista = localStorage.getItem("token");
 
-                if (!token) {
-                    navigate("/login");
-                    return;
-                }
+            const token = tokenAdmin || tokenCliente || tokenArtista;
 
-                const resposta = await fetch(
-                    `${API_URL}/api/chat/conversa`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`
-                        },
-                        body: JSON.stringify({
-                            artista_id: id
-                        })
-                    }
-                );
-
-                const dados = await resposta.json();
-
-                console.log(
-                    "RESPOSTA DA CONVERSA:",
-                    dados
-                );
-
-                console.log(
-                    "ID DA CONVERSA RECEBIDO:",
-                    dados.id
-                );
-
-                if (!resposta.ok) {
-                    throw new Error(
-                        dados.erro ||
-                        "Erro ao criar conversa"
-                    );
-                }
-
-                if (!dados.id) {
-                    throw new Error(
-                        "Backend não retornou o ID da conversa."
-                    );
-                }
-
-                navigate(
-                    `/chat/conversa/${dados.id}`
-                );
-
-            } catch (erro) {
-
-                console.error(
-                    "Erro ao abrir conversa:",
-                    erro
-                );
-
+            if (!token) {
+                navigate("/login");
+                return;
             }
-        }}
-    >
-        💬 Chat
-    </button>
+
+            const ehAdmin = Boolean(tokenAdmin);
+
+            const endpoint = ehAdmin
+                ? `${API_URL}/api/chat/admin/conversa`
+                : `${API_URL}/api/chat/conversa`;
+
+            const corpo = ehAdmin
+                ? {
+                    usuario_id: Number(id),
+                    tipo_usuario: "artista"
+                }
+                : {
+                    artista_id: Number(id)
+                };
+
+            const resposta = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(corpo)
+            });
+
+            const dados = await resposta.json();
+
+            console.log("RESPOSTA DA CONVERSA:", dados);
+
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.erro || "Erro ao criar conversa."
+                );
+            }
+
+            if (!dados.id) {
+                throw new Error(
+                    "Backend não retornou o ID da conversa."
+                );
+            }
+
+            navigate(`/chat/conversa/${dados.id}`);
+
+        } catch (erro) {
+            console.error("Erro ao abrir conversa:", erro);
+        }
+    }}
+>
+    💬 Chat
+</button>
+
 )}
                 </div>
 

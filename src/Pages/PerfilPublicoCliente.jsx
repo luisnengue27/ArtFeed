@@ -16,14 +16,16 @@ const PerfilPublicoCliente = () => {
     const [erro, setErro] = useState("");
     const [mensagem, setMensagem] = useState("");
 
-    const tokenArtista = localStorage.getItem("token");
-    const tokenCliente = localStorage.getItem("tokenCliente");
+    const tokenAdmin = localStorage.getItem("tokenAdmin");
+const tokenArtista = localStorage.getItem("token");
+const tokenCliente = localStorage.getItem("tokenCliente");
+
+const token = tokenAdmin || tokenArtista || tokenCliente;
+const ehAdmin = Boolean(tokenAdmin);
 
     const carregarPerfil = async () => {
         try {
-            const token = tokenArtista || tokenCliente;
-
-            if (!token) {
+          if (!token) {
                 navigate("/login");
                 return;
             }
@@ -117,7 +119,51 @@ const PerfilPublicoCliente = () => {
             setEnviando(false);
         }
     };
+const iniciarConversa = async () => {
+    try {
+        if (!token) {
+            navigate("/login");
+            return;
+        }
 
+        const endpoint = ehAdmin
+            ? "/api/chat/admin/conversa"
+            : "/api/chat/conversa";
+
+        const corpo = ehAdmin
+            ? {
+                usuario_id: Number(id),
+                tipo_usuario: "cliente"
+            }
+            : {
+                cliente_id: Number(id)
+            };
+
+        const resposta = await apiFetch(endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(corpo)
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(dados.erro || "Não foi possível iniciar a conversa.");
+        }
+
+        if (!dados.id) {
+            throw new Error("O servidor não retornou o ID da conversa.");
+        }
+
+        navigate(`/chat/conversa/${dados.id}`);
+    } catch (erro) {
+        console.error("Erro ao iniciar conversa:", erro);
+        setErro(erro.message || "Erro ao iniciar conversa.");
+    }
+};
     if (carregando) {
         return <main className={styles.pagina}><p>Carregando perfil...</p></main>;
     }
@@ -154,7 +200,15 @@ const PerfilPublicoCliente = () => {
 
 
                 <h1>{cliente.username}</h1>
-
+{(ehAdmin || tokenArtista) && (
+    <button
+        type="button"
+        className={styles.salvar}
+        onClick={iniciarConversa}
+    >
+        💬 Chat
+    </button>
+)}
                 <p className={styles.data}>
                     No ArtFeed desde{" "}
                     {cliente.data_cadastro

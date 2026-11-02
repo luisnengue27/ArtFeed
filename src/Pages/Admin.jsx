@@ -26,6 +26,15 @@ function Admin() {
 const [administradores, setAdministradores] = useState([]);
 const [carregandoLista, setCarregandoLista] = useState(false);
 const [erroLista, setErroLista] = useState("");
+// Gerenciamento de usuários
+const [usuarios, setUsuarios] = useState([]);
+const [buscaUsuarios, setBuscaUsuarios] = useState("");
+const [filtroTipo, setFiltroTipo] = useState("todos");
+const [carregandoUsuarios, setCarregandoUsuarios] = useState(false);
+const [erroUsuarios, setErroUsuarios] = useState("");
+const [paginaUsuarios, setPaginaUsuarios] = useState(1);
+const [totalPaginasUsuarios, setTotalPaginasUsuarios] = useState(0);
+const [abrindoConversa, setAbrindoConversa] = useState(null);
     useEffect(() => {
         let ativo = true;
 
@@ -82,6 +91,7 @@ const [erroLista, setErroLista] = useState("");
 useEffect(() => {
     if (!carregando && administrador) {
         carregarAdministradores();
+        carregarUsuarios(1);
     }
 }, [carregando, administrador]);
 async function carregarAdministradores() {
@@ -124,6 +134,109 @@ async function carregarAdministradores() {
         setCarregandoLista(false);
     }
 }
+
+async function carregarUsuarios(pagina = 1) {
+    const token = localStorage.getItem("tokenAdmin");
+
+    if (!token) {
+        sair();
+        return;
+    }
+
+    setCarregandoUsuarios(true);
+    setErroUsuarios("");
+
+    try {
+        const parametros = new URLSearchParams({
+            busca: buscaUsuarios,
+            pagina: String(pagina)
+        });
+
+        const resposta = await fetch(
+            `${API_URL}/api/chat/admin/usuarios?${parametros}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            if (resposta.status === 401 || resposta.status === 403) {
+                sair();
+                return;
+            }
+
+            throw new Error(
+                dados.erro || "Não foi possível carregar os usuários."
+            );
+        }
+
+        setUsuarios(dados.usuarios || []);
+        setPaginaUsuarios(dados.pagina || 1);
+        setTotalPaginasUsuarios(dados.totalPaginas || 0);
+
+    } catch (erro) {
+        console.error("Erro ao carregar usuários:", erro);
+        setErroUsuarios(
+            erro.message || "Erro ao consultar os usuários."
+        );
+    } finally {
+        setCarregandoUsuarios(false);
+    }
+}
+
+async function iniciarConversa(usuario) {
+    const token = localStorage.getItem("tokenAdmin");
+
+    if (!token) {
+        sair();
+        return;
+    }
+
+    setAbrindoConversa(`${usuario.tipo}-${usuario.id}`);
+    setErroUsuarios("");
+
+    try {
+        const resposta = await fetch(
+            `${API_URL}/api/chat/admin/conversa`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    usuario_id: Number(usuario.id),
+                    tipo_usuario: usuario.tipo
+                })
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.erro || "Não foi possível iniciar a conversa."
+            );
+        }
+
+        if (!dados.id) {
+            throw new Error("O servidor não retornou o ID da conversa.");
+        }
+
+        navigate(`/chat/conversa/${dados.id}`);
+
+    } catch (erro) {
+        console.error("Erro ao iniciar conversa:", erro);
+        setErroUsuarios(erro.message);
+    } finally {
+        setAbrindoConversa(null);
+    }
+}
+
 
     async function cadastrarAdministrador(e) {
         e.preventDefault();
@@ -389,7 +502,164 @@ function sair() {
         </div>
     )}
 </section>
+<section className="admin-secao">
+    <div className="admin-secao-titulo">
+        <div className="admin-secao-icone">♙</div>
 
+        <div>
+            <h2>Gerenciamento de usuários</h2>
+            <p>
+                Consulte artistas e clientes e inicie conversas diretamente.
+            </p>
+        </div>
+    </div>
+
+    <div className="admin-formulario">
+        <div className="admin-campo">
+            <label htmlFor="busca-usuarios">
+                Pesquisar usuário
+            </label>
+
+            <input
+                id="busca-usuarios"
+                type="search"
+                value={buscaUsuarios}
+                onChange={(e) => setBuscaUsuarios(e.target.value)}
+                placeholder="Digite o nome do usuário..."
+            />
+        </div>
+
+        <div className="admin-campo">
+            <label htmlFor="filtro-usuarios">
+                Tipo de usuário
+            </label>
+
+            <select
+                id="filtro-usuarios"
+                value={filtroTipo}
+                onChange={(e) => setFiltroTipo(e.target.value)}
+            >
+                <option value="todos">Todos</option>
+                <option value="artista">Artistas</option>
+                <option value="cliente">Clientes</option>
+            </select>
+        </div>
+
+        <button
+            type="button"
+            className="admin-botao-cadastrar"
+            onClick={() => carregarUsuarios(1)}
+            disabled={carregandoUsuarios}
+        >
+            {carregandoUsuarios ? "Buscando..." : "Pesquisar"}
+        </button>
+    </div>
+
+    {erroUsuarios && (
+        <p className="admin-mensagem admin-mensagem-erro">
+            {erroUsuarios}
+        </p>
+    )}
+
+    {carregandoUsuarios ? (
+        <p>Carregando usuários...</p>
+    ) : usuarios.filter(usuario =>
+        filtroTipo === "todos" || usuario.tipo === filtroTipo
+    ).length === 0 ? (
+        <p>Nenhum usuário encontrado.</p>
+    ) : (
+        <div className="admin-tabela-container">
+            <table className="admin-tabela">
+                <thead>
+                    <tr>
+                        <th>Foto</th>
+                        <th>Usuário</th>
+                        <th>Tipo</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {usuarios
+                        .filter(usuario =>
+                            filtroTipo === "todos" ||
+                            usuario.tipo === filtroTipo
+                        )
+                        .map(usuario => (
+                            <tr key={`${usuario.tipo}-${usuario.id}`}>
+                                <td>
+                                    <img
+                                        src={usuario.foto || "/avatar-padrao.png"}
+                                        alt=""
+                                        onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = "/avatar-padrao.png";
+                                        }}
+                                        style={{
+                                            width: "42px",
+                                            height: "42px",
+                                            borderRadius: "50%",
+                                            objectFit: "cover"
+                                        }}
+                                    />
+                                </td>
+
+                                <td>{usuario.username}</td>
+
+                                <td>
+                                    {usuario.tipo === "artista"
+                                        ? "Artista"
+                                        : "Cliente"}
+                                </td>
+
+                                <td>
+                                    <button
+                                        type="button"
+                                        className="admin-botao-cadastrar"
+                                        onClick={() => iniciarConversa(usuario)}
+                                        disabled={
+                                            abrindoConversa ===
+                                            `${usuario.tipo}-${usuario.id}`
+                                        }
+                                    >
+                                        {abrindoConversa ===
+                                        `${usuario.tipo}-${usuario.id}`
+                                            ? "Abrindo..."
+                                            : "💬 Conversar"}
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                </tbody>
+            </table>
+        </div>
+    )}
+
+    <div className="admin-paginacao">
+        <button
+            type="button"
+            onClick={() => carregarUsuarios(paginaUsuarios - 1)}
+            disabled={paginaUsuarios <= 1 || carregandoUsuarios}
+        >
+            Anterior
+        </button>
+
+        <span>
+            Página {paginaUsuarios} de {totalPaginasUsuarios}
+        </span>
+
+        <button
+            type="button"
+            onClick={() => carregarUsuarios(paginaUsuarios + 1)}
+            disabled={
+                paginaUsuarios >= totalPaginasUsuarios ||
+                carregandoUsuarios
+            }
+        >
+            Próxima
+        </button>
+    </div>
+</section>
         </main>
     );
 }
