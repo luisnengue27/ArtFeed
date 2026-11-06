@@ -742,6 +742,11 @@ await poolNeon.query(
 
 router.post("/artes", verificarToken, upload.single("imagem"), async (req, res) => {
     try {
+        if (req.usuario.tipo !== "artista") {
+    return res.status(403).json({
+        erro: "Somente artistas podem publicar artes."
+    });
+}
         const artistaId = req.usuario.id;
         const { titulo } = req.body;
 
@@ -757,7 +762,19 @@ router.post("/artes", verificarToken, upload.single("imagem"), async (req, res) 
         if (artista.rows.length === 0) {
             return res.status(404).json({ erro: "Artista não encontrado" });
         }
+// Verificar se o artista possui um perfil/portfólio
+const perfil = await poolNeon.query(
+    `SELECT id
+     FROM perfil_artista
+     WHERE artista_id = $1`,
+    [artistaId]
+);
 
+if (perfil.rows.length === 0) {
+    return res.status(403).json({
+        erro: "Você precisa criar seu portfólio antes de publicar artes."
+    });
+}
         const nomeArquivo = `artista-${Date.now()}`;
         const imagemCloudinary = await uploadParaCloudinary(req.file.buffer, nomeArquivo);
 
@@ -803,7 +820,59 @@ router.get("/minhas-artes", verificarToken, async (req, res) => {
         return res.status(500).json({ erro: "Erro ao buscar suas artes." });
     }
 });
+// ============================
+// EXCLUIR ARTE DO PORTFÓLIO
+// ============================
 
+router.delete("/artes/:arteId", verificarToken, async (req, res) => {
+    try {
+        const artistaId = Number(req.usuario.id);
+        const arteId = Number(req.params.arteId);
+
+        // Somente artistas podem excluir artes
+        if (req.usuario.tipo !== "artista") {
+            return res.status(403).json({
+                erro: "Somente artistas podem excluir artes."
+            });
+        }
+
+        // Validar ID
+        if (
+            !Number.isSafeInteger(arteId) ||
+            arteId <= 0
+        ) {
+            return res.status(400).json({
+                erro: "ID da arte inválido."
+            });
+        }
+
+        // Excluir somente se a arte pertencer ao artista logado
+        const resultado = await poolNeon.query(
+            `DELETE FROM artes
+             WHERE id = $1
+               AND artista_id = $2
+             RETURNING id`,
+            [arteId, artistaId]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                erro: "Arte não encontrada ou você não tem permissão para excluí-la."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Arte excluída com sucesso!"
+        });
+
+    } catch (erro) {
+        console.error("Erro ao excluir arte:", erro);
+
+        return res.status(500).json({
+            erro: "Erro interno ao excluir a arte."
+        });
+    }
+});
 // ============================
 // GET - listar todas as artes
 // ============================

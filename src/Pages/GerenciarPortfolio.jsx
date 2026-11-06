@@ -41,7 +41,7 @@ function GerenciarPortfolio() {
                 }
             );
 
-            const resultado = await resposta.json();
+            const resultado = await resposta.json().catch(() => ({}));
 
             if (!resposta.ok) {
                 setErro(resultado.erro);
@@ -83,7 +83,7 @@ function GerenciarPortfolio() {
             const resultado = await resposta.json();
 
             if (!resposta.ok) {
-                setErro(resultado.erro);
+               setErro(resultado.erro || "Não foi possível excluir a arte.");
                 return;
             }
 
