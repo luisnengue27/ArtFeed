@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { apiFetch } from "../services/api";
 import "./PerfilArtista.css";
+
 const TAGS_DISPONIVEIS = [
     "Ilustração",
     "Arte digital",
@@ -23,6 +24,7 @@ const TAGS_DISPONIVEIS = [
     "Fanart",
     "Realismo"
 ];
+
 const PerfilArtista = () => {
     const navigate = useNavigate();
 
@@ -30,10 +32,14 @@ const PerfilArtista = () => {
     const [carregando, setCarregando] = useState(true);
     const [salvando, setSalvando] = useState(false);
 
-    const [formulario, setFormulario] = useState({
+    const [conta, setConta] = useState({
         username: "",
         email: "",
-        senha: "",
+        senhaAtual: "",
+        novaSenha: ""
+    });
+
+    const [formulario, setFormulario] = useState({
         nome: "",
         preco: "",
         cidade: "",
@@ -48,6 +54,7 @@ const PerfilArtista = () => {
     const [mensagem, setMensagem] = useState("");
     const [erro, setErro] = useState("");
 
+    // Liberar URL temporária da imagem
     useEffect(() => {
         return () => {
             if (fotoPreview) {
@@ -56,8 +63,9 @@ const PerfilArtista = () => {
         };
     }, [fotoPreview]);
 
+    // Carregar dados da conta e do perfil
     useEffect(() => {
-        const carregarPerfil = async () => {
+        const carregarDados = async () => {
             const token = localStorage.getItem("token");
 
             if (!token) {
@@ -67,71 +75,91 @@ const PerfilArtista = () => {
             }
 
             try {
-                const resposta = await apiFetch("/api/artistas/perfil", {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`
+                // Dados da conta
+                const respostaConta = await apiFetch(
+                    "/api/artistas/conta",
+                    {
+                        method: "GET",
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
                     }
-                });
+                );
 
-                const resultado = await resposta.json();
+                const dadosConta = await respostaConta.json();
 
-                if (!resposta.ok) {
-                    if (resposta.status === 404) {
-                        setPerfilExiste(false);
+                if (!respostaConta.ok) {
+                    throw new Error(
+                        dadosConta.erro ||
+                        "Não foi possível carregar sua conta."
+                    );
+                }
 
-                        setFormulario(prev => ({
-                            ...prev,
-                            username: resultado.username || "",
-                            email: resultado.email || ""
-                        }));
+                setConta(prev => ({
+                    ...prev,
+                    username: dadosConta.username || "",
+                    email: dadosConta.email || ""
+                }));
 
-                        return;
+                // Perfil profissional
+                const respostaPerfil = await apiFetch(
+                    "/api/artistas/perfil",
+                    {
+                        method: "GET",
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
                     }
+                );
 
-                    setErro(resultado.erro || "Não foi possível carregar o perfil.");
+                const dadosPerfil = await respostaPerfil.json();
+
+                if (respostaPerfil.status === 404) {
+                    setPerfilExiste(false);
                     return;
                 }
 
-                const dadosPerfil = resultado.perfil || resultado;
-                const tags = dadosPerfil.tags;
+                if (!respostaPerfil.ok) {
+                    throw new Error(
+                        dadosPerfil.erro ||
+                        "Não foi possível carregar seu perfil."
+                    );
+                }
 
                 setPerfilExiste(true);
 
                 setFormulario({
-                    username: resultado.username || dadosPerfil.username || "",
-                    email: resultado.email || dadosPerfil.email || "",
-                    senha: "",
                     nome: dadosPerfil.nome || "",
                     preco: dadosPerfil.preco || "",
                     cidade: dadosPerfil.cidade || "",
                     profissao: dadosPerfil.profissao || "",
-                    tags: Array.isArray(tags)
-                        ? tags.join(", ")
-                        : tags || "",
+                    tags: Array.isArray(dadosPerfil.tags)
+                        ? dadosPerfil.tags.join(", ")
+                        : dadosPerfil.tags || "",
                     descricao: dadosPerfil.descricao || ""
                 });
 
-                const imagem =
+                setFotoAtual(
                     dadosPerfil.foto ||
                     dadosPerfil.foto_perfil ||
-                    dadosPerfil.imagem ||
-                    resultado.foto ||
-                    resultado.foto_perfil ||
-                    "";
+                    ""
+                );
 
-                setFotoAtual(imagem);
             } catch (error) {
                 console.error(error);
-                setErro("Não foi possível carregar o perfil.");
+                setErro(
+                    error.message ||
+                    "Não foi possível carregar seus dados."
+                );
             } finally {
                 setCarregando(false);
             }
         };
 
-        carregarPerfil();
+        carregarDados();
     }, []);
 
+    // Sair da conta
     const handleLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("artista");
@@ -140,6 +168,17 @@ const PerfilArtista = () => {
         navigate("/");
     };
 
+    // Alterar dados da conta
+    const handleContaChange = (e) => {
+        const { name, value } = e.target;
+
+        setConta(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Alterar dados profissionais
     const handleChange = (e) => {
         const { name, value } = e.target;
 
@@ -148,30 +187,35 @@ const PerfilArtista = () => {
             [name]: value
         }));
     };
-const tagsSelecionadas = formulario.tags
-    .split(",")
-    .map(tag => tag.trim())
-    .filter(Boolean);
 
-const handleTagToggle = (tag) => {
-    setFormulario(prev => {
-        const atuais = prev.tags
-            .split(",")
-            .map(item => item.trim())
-            .filter(Boolean);
+    // Tags selecionadas
+    const tagsSelecionadas = formulario.tags
+        .split(",")
+        .map(tag => tag.trim())
+        .filter(Boolean);
 
-        const jaSelecionada = atuais.includes(tag);
+    // Selecionar ou desmarcar tags
+    const handleTagToggle = (tag) => {
+        setFormulario(prev => {
+            const atuais = prev.tags
+                .split(",")
+                .map(item => item.trim())
+                .filter(Boolean);
 
-        const atualizadas = jaSelecionada
-            ? atuais.filter(item => item !== tag)
-            : [...atuais, tag];
+            const jaSelecionada = atuais.includes(tag);
 
-        return {
-            ...prev,
-            tags: atualizadas.join(", ")
-        };
-    });
-};
+            const atualizadas = jaSelecionada
+                ? atuais.filter(item => item !== tag)
+                : [...atuais, tag];
+
+            return {
+                ...prev,
+                tags: atualizadas.join(", ")
+            };
+        });
+    };
+
+    // Selecionar foto
     const handleFoto = (e) => {
         const arquivo = e.target.files?.[0];
 
@@ -189,38 +233,83 @@ const handleTagToggle = (tag) => {
         setFotoPreview(URL.createObjectURL(arquivo));
     };
 
-    const handleSubmit = async (e) => {
+    // Salvar dados da conta
+    const handleSalvarConta = async (e) => {
         e.preventDefault();
 
+        setSalvando(true);
         setMensagem("");
         setErro("");
 
-        const token = localStorage.getItem("token");
+        try {
+            const token = localStorage.getItem("token");
 
-        if (!token) {
-            setErro("Você precisa estar logado.");
-            return;
-        }
+            const resposta = await apiFetch(
+                "/api/artistas/conta",
+                {
+                    method: "PUT",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(conta)
+                }
+            );
 
-        if (!perfilExiste && !foto) {
-            setErro("A foto de perfil é obrigatória para criar seu perfil.");
-            return;
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.erro || "Erro ao atualizar a conta."
+                );
+            }
+
+            setConta(prev => ({
+                ...prev,
+                username: dados.artista.username,
+                email: dados.artista.email,
+                senhaAtual: "",
+                novaSenha: ""
+            }));
+
+            const artistaSalvo = JSON.parse(
+                localStorage.getItem("artista") || "{}"
+            );
+
+            localStorage.setItem(
+                "artista",
+                JSON.stringify({
+                    ...artistaSalvo,
+                    ...dados.artista
+                })
+            );
+
+            window.dispatchEvent(
+                new Event("loginStatusChanged")
+            );
+
+            setMensagem(
+                dados.mensagem || "Conta atualizada com sucesso!"
+            );
+
+        } catch (error) {
+            setErro(error.message);
+        } finally {
+            setSalvando(false);
         }
+    };
+
+    // Salvar perfil profissional
+    const handleSalvarPerfil = async (e) => {
+        e.preventDefault();
 
         setSalvando(true);
+        setMensagem("");
+        setErro("");
 
         try {
+            const token = localStorage.getItem("token");
             const dados = new FormData();
-
-            if (perfilExiste) {
-                dados.append("username", formulario.username);
-                dados.append("email", formulario.email);
-
-                // Só envia a senha se o artista quiser alterá-la.
-                if (formulario.senha.trim()) {
-                    dados.append("senha", formulario.senha);
-                }
-            }
 
             dados.append("nome", formulario.nome);
             dados.append("preco", formulario.preco);
@@ -233,48 +322,39 @@ const handleTagToggle = (tag) => {
                 dados.append("foto", foto);
             }
 
-            const resposta = await apiFetch("/api/artistas/perfil", {
-                method: perfilExiste ? "PUT" : "POST",
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-                body: dados
-            });
+            const resposta = await apiFetch(
+                "/api/artistas/perfil",
+                {
+                    method: perfilExiste ? "PUT" : "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: dados
+                }
+            );
 
             const resultado = await resposta.json();
 
             if (!resposta.ok) {
-                setErro(resultado.erro || "Não foi possível salvar as alterações.");
-                return;
+                throw new Error(
+                    resultado.erro || "Erro ao salvar o perfil."
+                );
             }
 
-            setMensagem(resultado.mensagem || "Perfil salvo com sucesso.");
             setPerfilExiste(true);
-            setFormulario(prev => ({
-                ...prev,
-                senha: ""
-            }));
-window.dispatchEvent(new Event("loginStatusChanged"));
-            const dadosPerfil = resultado.perfil || resultado;
-            const imagemAtualizada =
-                dadosPerfil.foto ||
-                dadosPerfil.foto_perfil ||
-                dadosPerfil.imagem ||
-                resultado.foto ||
-                resultado.foto_perfil;
+            setFoto(null);
 
-            if (imagemAtualizada) {
-                setFotoAtual(imagemAtualizada);
-            } else if (fotoPreview) {
-                // Mantém a prévia visível caso a API não retorne a URL.
-                setFotoAtual(fotoPreview);
+            if (resultado.foto) {
+                setFotoAtual(resultado.foto);
+                setFotoPreview("");
             }
 
-            setFoto(null);
-            setFotoPreview("");
+            setMensagem(
+                resultado.mensagem || "Perfil salvo com sucesso!"
+            );
+
         } catch (error) {
-            console.error(error);
-            setErro("Não foi possível conectar com o servidor.");
+            setErro(error.message);
         } finally {
             setSalvando(false);
         }
@@ -283,7 +363,9 @@ window.dispatchEvent(new Event("loginStatusChanged"));
     if (carregando) {
         return (
             <main className="perfil-artista-pagina">
-                <p className="perfil-artista-status">Carregando seu perfil...</p>
+                <p className="perfil-artista-status">
+                    Carregando seu perfil...
+                </p>
             </main>
         );
     }
@@ -291,14 +373,19 @@ window.dispatchEvent(new Event("loginStatusChanged"));
     return (
         <main className="perfil-artista-pagina">
             <div className="perfil-artista-container">
+
+                {/* Cabeçalho */}
                 <header className="perfil-artista-header">
                     <div>
                         <span className="perfil-artista-etiqueta">
                             ÁREA DO ARTISTA
                         </span>
+
                         <h1>Meu perfil</h1>
+
                         <p>
-                            Gerencie seus dados de acesso e suas informações profissionais.
+                            Gerencie seus dados de acesso e suas
+                            informações profissionais.
                         </p>
                     </div>
 
@@ -310,270 +397,377 @@ window.dispatchEvent(new Event("loginStatusChanged"));
                         <span aria-hidden="true">▧</span>
                         Gerenciar portfólio
                     </button>
+
                     <button
-    type="button"
-    className="perfil-artista-botao-secundario"
-    onClick={() => navigate("/artistas-bloqueados")}
->
-    Artistas bloqueados
-</button>
+                        type="button"
+                        className="perfil-artista-botao-secundario"
+                        onClick={() => navigate("/artistas-bloqueados")}
+                    >
+                        Artistas bloqueados
+                    </button>
                 </header>
 
-                <form onSubmit={handleSubmit} className="perfil-artista-form">
-                    <section className="perfil-artista-secao">
-                        <div className="perfil-artista-titulo-secao">
-                            <span className="perfil-artista-numero">01</span>
-                            <div>
-                                <h2>Foto de perfil</h2>
-                                <p>Essa é a imagem que identifica você no ArtFeed.</p>
-                            </div>
-                        </div>
+                <div className="perfil-artista-form">
 
-                        <div className="perfil-artista-foto-area">
-                            <div className="perfil-artista-avatar">
-                                {fotoPreview || fotoAtual ? (
-                                    <img
-                                        src={fotoPreview || fotoAtual}
-                                        alt="Prévia da foto de perfil"
-                                    />
-                                ) : (
-                                    <span aria-hidden="true">✦</span>
-                                )}
+                    {/* FORMULÁRIO DA CONTA */}
+                    <form onSubmit={handleSalvarConta}>
+
+                        <section className="perfil-artista-secao">
+                            <div className="perfil-artista-titulo-secao">
+                                <span className="perfil-artista-numero">
+                                    01
+                                </span>
+
+                                <div>
+                                    <h2>Dados da conta</h2>
+                                    <p>
+                                        Informações usadas para acessar
+                                        sua conta.
+                                    </p>
+                                </div>
                             </div>
 
-                            <div className="perfil-artista-foto-info">
-                                <strong>
-                                    {foto ? foto.name : "Sua foto de perfil"}
-                                </strong>
-                                <p>
-                                    Escolha uma imagem para representar seu trabalho.
-                                </p>
+                            <div className="perfil-artista-grade">
 
-                                <label className="perfil-artista-upload">
-                                    Escolher imagem
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="username">
+                                        Username
+                                    </label>
+
                                     <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleFoto}
+                                        id="username"
+                                        type="text"
+                                        name="username"
+                                        value={conta.username}
+                                        onChange={handleContaChange}
+                                        autoComplete="username"
+                                        required
                                     />
-                                </label>
+                                </div>
 
-                                {fotoPreview && (
-                                    <button
-                                        type="button"
-                                        className="perfil-artista-remover-preview"
-                                        onClick={() => {
-                                            setFoto(null);
-                                            setFotoPreview("");
-                                        }}
-                                    >
-                                        Cancelar nova foto
-                                    </button>
-                                )}
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="email">
+                                        E-mail
+                                    </label>
+
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        value={conta.email}
+                                        onChange={handleContaChange}
+                                        autoComplete="email"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="senhaAtual">
+                                        Senha atual
+                                    </label>
+
+                                    <input
+                                        id="senhaAtual"
+                                        type="password"
+                                        name="senhaAtual"
+                                        value={conta.senhaAtual}
+                                        onChange={handleContaChange}
+                                        autoComplete="current-password"
+                                        placeholder="Necessária para alterar a senha"
+                                    />
+                                </div>
+
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="novaSenha">
+                                        Nova senha
+                                    </label>
+
+                                    <input
+                                        id="novaSenha"
+                                        type="password"
+                                        name="novaSenha"
+                                        value={conta.novaSenha}
+                                        onChange={handleContaChange}
+                                        autoComplete="new-password"
+                                        placeholder="Deixe vazio para manter a senha"
+                                    />
+                                </div>
+
                             </div>
+
+                            <div className="perfil-artista-acoes">
+                                <button
+                                    type="submit"
+                                    className="perfil-artista-botao-salvar"
+                                    disabled={salvando}
+                                >
+                                    {salvando
+                                        ? "Salvando..."
+                                        : "Salvar dados da conta"}
+                                </button>
+                            </div>
+                        </section>
+                    </form>
+
+                    {/* FORMULÁRIO DO PERFIL PROFISSIONAL */}
+                    <form onSubmit={handleSalvarPerfil}>
+
+                        {/* Foto de perfil */}
+                        <section className="perfil-artista-secao">
+                            <div className="perfil-artista-titulo-secao">
+                                <span className="perfil-artista-numero">
+                                    02
+                                </span>
+
+                                <div>
+                                    <h2>Foto de perfil</h2>
+                                    <p>
+                                        Essa é a imagem que identifica
+                                        você no ArtFeed.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="perfil-artista-foto-area">
+
+                                <div className="perfil-artista-avatar">
+                                    {fotoPreview || fotoAtual ? (
+                                        <img
+                                            src={fotoPreview || fotoAtual}
+                                            alt="Prévia da foto de perfil"
+                                        />
+                                    ) : (
+                                        <span aria-hidden="true">✦</span>
+                                    )}
+                                </div>
+
+                                <div className="perfil-artista-foto-info">
+                                    <strong>
+                                        {foto
+                                            ? foto.name
+                                            : "Sua foto de perfil"}
+                                    </strong>
+
+                                    <p>
+                                        Escolha uma imagem para representar
+                                        seu trabalho.
+                                    </p>
+
+                                    <label className="perfil-artista-upload">
+                                        Escolher imagem
+
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFoto}
+                                        />
+                                    </label>
+
+                                    {fotoPreview && (
+                                        <button
+                                            type="button"
+                                            className="perfil-artista-remover-preview"
+                                            onClick={() => {
+                                                setFoto(null);
+                                                setFotoPreview("");
+                                            }}
+                                        >
+                                            Cancelar nova foto
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Informações profissionais */}
+                        <section className="perfil-artista-secao">
+                            <div className="perfil-artista-titulo-secao">
+                                <span className="perfil-artista-numero">
+                                    03
+                                </span>
+
+                                <div>
+                                    <h2>Perfil profissional</h2>
+                                    <p>
+                                        Essas informações ajudam as pessoas
+                                        a conhecer seu trabalho.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="perfil-artista-grade">
+
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="nome">
+                                        Nome de exibição
+                                    </label>
+
+                                    <input
+                                        id="nome"
+                                        type="text"
+                                        name="nome"
+                                        value={formulario.nome}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="profissao">
+                                        Profissão
+                                    </label>
+
+                                    <input
+                                        id="profissao"
+                                        type="text"
+                                        name="profissao"
+                                        value={formulario.profissao}
+                                        onChange={handleChange}
+                                        placeholder="Ex.: Ilustrador"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="preco">
+                                        Preço das artes
+                                    </label>
+
+                                    <input
+                                        id="preco"
+                                        type="text"
+                                        name="preco"
+                                        value={formulario.preco}
+                                        onChange={handleChange}
+                                        placeholder="Ex.: R$ 200 - R$ 800"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="perfil-artista-campo">
+                                    <label htmlFor="cidade">
+                                        Cidade
+                                    </label>
+
+                                    <input
+                                        id="cidade"
+                                        type="text"
+                                        name="cidade"
+                                        value={formulario.cidade}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+
+                                {/* Tags */}
+                                <div className="perfil-artista-campo perfil-artista-campo-completo">
+                                    <label>
+                                        Tags do seu trabalho
+                                    </label>
+
+                                    <p className="perfil-artista-tags-ajuda">
+                                        Selecione as opções que melhor
+                                        representam seu estilo e suas técnicas.
+                                    </p>
+
+                                    <div className="perfil-artista-tags">
+                                        {TAGS_DISPONIVEIS.map(tag => {
+                                            const selecionada =
+                                                tagsSelecionadas.includes(tag);
+
+                                            return (
+                                                <button
+                                                    key={tag}
+                                                    type="button"
+                                                    className={`perfil-artista-tag ${
+                                                        selecionada
+                                                            ? "selecionada"
+                                                            : ""
+                                                    }`}
+                                                    aria-pressed={selecionada}
+                                                    onClick={() =>
+                                                        handleTagToggle(tag)
+                                                    }
+                                                >
+                                                    {selecionada ? "✓ " : "+ "}
+                                                    {tag}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <small>
+                                        {tagsSelecionadas.length}{" "}
+                                        {tagsSelecionadas.length === 1
+                                            ? "tag selecionada"
+                                            : "tags selecionadas"}
+                                    </small>
+                                </div>
+
+                                {/* Descrição */}
+                                <div className="perfil-artista-campo perfil-artista-campo-completo">
+                                    <label htmlFor="descricao">
+                                        Sobre você e seu trabalho
+                                    </label>
+
+                                    <textarea
+                                        id="descricao"
+                                        name="descricao"
+                                        value={formulario.descricao}
+                                        onChange={handleChange}
+                                        placeholder="Conte um pouco sobre seu estilo, suas técnicas e sua experiência..."
+                                        rows={5}
+                                        required
+                                    />
+                                </div>
+
+                            </div>
+                        </section>
+
+                        {/* Mensagens */}
+                        {mensagem && (
+                            <p
+                                className="perfil-artista-mensagem"
+                                role="status"
+                            >
+                                {mensagem}
+                            </p>
+                        )}
+
+                        {erro && (
+                            <p
+                                className="perfil-artista-erro"
+                                role="alert"
+                            >
+                                {erro}
+                            </p>
+                        )}
+
+                        {/* Botão de salvar perfil */}
+                        <div className="perfil-artista-acoes">
+                            <button
+                                type="submit"
+                                className="perfil-artista-botao-salvar"
+                                disabled={salvando}
+                            >
+                                {salvando
+                                    ? "Salvando..."
+                                    : perfilExiste
+                                        ? "Salvar alterações"
+                                        : "Criar perfil"}
+                            </button>
                         </div>
-                    </section>
 
-                    <section className="perfil-artista-secao">
-                        <div className="perfil-artista-titulo-secao">
-                            <span className="perfil-artista-numero">02</span>
-                            <div>
-                                <h2>Dados da conta</h2>
-                                <p>Informações usadas para acessar sua conta.</p>
-                            </div>
-                        </div>
+                    </form>
+                </div>
 
-                        <div className="perfil-artista-grade">
-                            <div className="perfil-artista-campo">
-                                <label htmlFor="username">Username</label>
-                                <input
-                                    id="username"
-                                    type="text"
-                                    name="username"
-                                    value={formulario.username}
-                                    onChange={handleChange}
-                                    autoComplete="username"
-                                    required
-                                />
-                            </div>
-
-                            <div className="perfil-artista-campo">
-                                <label htmlFor="email">E-mail</label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    value={formulario.email}
-                                    onChange={handleChange}
-                                    autoComplete="email"
-                                    required
-                                />
-                            </div>
-
-                            <div className="perfil-artista-campo perfil-artista-campo-completo">
-                                <label htmlFor="senha">Nova senha</label>
-                                <input
-                                    id="senha"
-                                    type="password"
-                                    name="senha"
-                                    value={formulario.senha}
-                                    onChange={handleChange}
-                                    placeholder="Deixe vazio para manter a senha atual"
-                                    autoComplete="new-password"
-                                />
-                                <small>
-                                    Por segurança, sua senha atual nunca é exibida.
-                                </small>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="perfil-artista-secao">
-                        <div className="perfil-artista-titulo-secao">
-                            <span className="perfil-artista-numero">03</span>
-                            <div>
-                                <h2>Perfil profissional</h2>
-                                <p>Essas informações ajudam as pessoas a conhecer seu trabalho.</p>
-                            </div>
-                        </div>
-
-                        <div className="perfil-artista-grade">
-                            <div className="perfil-artista-campo">
-                                <label htmlFor="nome">Nome de exibição</label>
-                                <input
-                                    id="nome"
-                                    type="text"
-                                    name="nome"
-                                    value={formulario.nome}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            <div className="perfil-artista-campo">
-                                <label htmlFor="profissao">Profissão</label>
-                                <input
-                                    id="profissao"
-                                    type="text"
-                                    name="profissao"
-                                    value={formulario.profissao}
-                                    onChange={handleChange}
-                                    placeholder="Ex.: Ilustrador"
-                                    required
-                                />
-                            </div>
-
-                            <div className="perfil-artista-campo">
-                                <label htmlFor="preco">Preço das artes</label>
-                                <input
-                                    id="preco"
-                                    type="text"
-                                    name="preco"
-                                    value={formulario.preco}
-                                    onChange={handleChange}
-                                    placeholder="Ex.: R$ 200 - R$ 800"
-                                    required
-                                />
-                            </div>
-
-                            <div className="perfil-artista-campo">
-                                <label htmlFor="cidade">Cidade</label>
-                                <input
-                                    id="cidade"
-                                    type="text"
-                                    name="cidade"
-                                    value={formulario.cidade}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            <div className="perfil-artista-campo perfil-artista-campo-completo">
-                                <label htmlFor="tags">Tags do seu trabalho</label>
-                            <div className="perfil-artista-campo perfil-artista-campo-completo">
-    <label>Tags do seu trabalho</label>
-
-    <p className="perfil-artista-tags-ajuda">
-        Selecione as opções que melhor representam seu estilo e suas técnicas.
-    </p>
-
-    <div className="perfil-artista-tags">
-        {TAGS_DISPONIVEIS.map(tag => {
-            const selecionada = tagsSelecionadas.includes(tag);
-
-            return (
-                <button
-                    key={tag}
-                    type="button"
-                    className={`perfil-artista-tag ${
-                        selecionada ? "selecionada" : ""
-                    }`}
-                    aria-pressed={selecionada}
-                    onClick={() => handleTagToggle(tag)}
-                >
-                    {selecionada ? "✓ " : "+ "}
-                    {tag}
-                </button>
-            );
-        })}
-    </div>
-
-    <small>
-        {tagsSelecionadas.length}{" "}
-        {tagsSelecionadas.length === 1
-            ? "tag selecionada"
-            : "tags selecionadas"}
-    </small>
-</div>
-                                <small>Separe cada tag com uma vírgula.</small>
-                            </div>
-
-                            <div className="perfil-artista-campo perfil-artista-campo-completo">
-                                <label htmlFor="descricao">Sobre você e seu trabalho</label>
-                                <textarea
-                                    id="descricao"
-                                    name="descricao"
-                                    value={formulario.descricao}
-                                    onChange={handleChange}
-                                    placeholder="Conte um pouco sobre seu estilo, suas técnicas e sua experiência..."
-                                    rows={5}
-                                    required
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    {mensagem && (
-                        <p className="perfil-artista-mensagem" role="status">
-                            {mensagem}
-                        </p>
-                    )}
-
-                    {erro && (
-                        <p className="perfil-artista-erro" role="alert">
-                            {erro}
-                        </p>
-                    )}
-
-                    <div className="perfil-artista-acoes">
-                        <button
-                            type="submit"
-                            className="perfil-artista-botao-salvar"
-                            disabled={salvando}
-                        >
-                            {salvando
-                                ? "Salvando..."
-                                : perfilExiste
-                                    ? "Salvar alterações"
-                                    : "Criar perfil"}
-                        </button>
-                    </div>
-                </form>
-
+                {/* Rodapé */}
                 <footer className="perfil-artista-rodape">
                     <div>
                         <strong>Quer sair da sua conta?</strong>
-                        <p>Você poderá entrar novamente quando quiser.</p>
+                        <p>
+                            Você poderá entrar novamente quando quiser.
+                        </p>
                     </div>
 
                     <button
@@ -584,6 +778,7 @@ window.dispatchEvent(new Event("loginStatusChanged"));
                         Sair da conta
                     </button>
                 </footer>
+
             </div>
         </main>
     );

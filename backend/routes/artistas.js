@@ -1335,6 +1335,168 @@ router.get("/meus-seguidos", verificarToken, async (req, res) => {
         });
     }
 });
+// ============================
+// CONSULTAR DADOS DA CONTA
+// ============================
 
+router.get("/conta", verificarToken, async (req, res) => {
+    try {
+        const artistaId = req.usuario.id;
+
+        const resultado = await poolNeon.query(
+            `SELECT id, username, email
+             FROM artistas
+             WHERE id = $1 AND ativo = true`,
+            [artistaId]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                erro: "Conta não encontrada."
+            });
+        }
+
+        return res.status(200).json(resultado.rows[0]);
+
+    } catch (erro) {
+        console.error("Erro ao consultar conta:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao consultar dados da conta."
+        });
+    }
+});
+// ============================
+// ATUALIZAR DADOS DA CONTA
+// ============================
+
+router.put("/conta", verificarToken, async (req, res) => {
+    try {
+        const artistaId = req.usuario.id;
+
+        const {
+    username,
+    email,
+    senhaAtual,
+    novaSenha
+} = req.body;
+
+if (
+    typeof username !== "string" ||
+    typeof email !== "string" ||
+    !username.trim() ||
+    !email.trim()
+) {
+    return res.status(400).json({
+        erro: "Username e e-mail são obrigatórios."
+    });
+}
+
+const usernameLimpo = username.trim();
+const emailLimpo = email.trim().toLowerCase();
+        const artistaResultado = await poolNeon.query(
+            `SELECT id, username, email, senha
+             FROM artistas
+             WHERE id = $1 AND ativo = true`,
+            [artistaId]
+        );
+
+        if (artistaResultado.rows.length === 0) {
+            return res.status(404).json({
+                erro: "Conta não encontrada."
+            });
+        }
+
+        const artista = artistaResultado.rows[0];
+
+        const emailExistente = await poolNeon.query(
+            `SELECT id FROM artistas
+             WHERE LOWER(email) = LOWER($1)
+             AND id <> $2`,
+           [emailLimpo, artistaId]
+        );
+
+        if (emailExistente.rows.length > 0) {
+            return res.status(409).json({
+                erro: "Este e-mail já está cadastrado."
+            });
+        }
+
+        const usernameExistente = await poolNeon.query(
+            `SELECT id FROM artistas
+             WHERE LOWER(username) = LOWER($1)
+             AND id <> $2`,
+           [usernameLimpo, artistaId]
+        );
+
+        if (usernameExistente.rows.length > 0) {
+            return res.status(409).json({
+                erro: "Este username já está cadastrado."
+            });
+        }
+
+        let senhaFinal = artista.senha;
+
+        if (novaSenha) {
+            if (!senhaAtual) {
+                return res.status(400).json({
+                    erro: "Informe sua senha atual."
+                });
+            }
+
+            const senhaCorreta = await bcrypt.compare(
+                senhaAtual,
+                artista.senha
+            );
+
+            if (!senhaCorreta) {
+                return res.status(401).json({
+                    erro: "Senha atual incorreta."
+                });
+            }
+
+            if (novaSenha.length < 8) {
+                return res.status(400).json({
+                    erro: "A nova senha deve ter pelo menos 8 caracteres."
+                });
+            }
+
+            senhaFinal = await bcrypt.hash(novaSenha, 10);
+        }
+
+    const atualizado = await poolNeon.query(
+    `UPDATE artistas
+     SET username = $1,
+         email = $2,
+         senha = $3
+     WHERE id = $4 AND ativo = true
+     RETURNING id, username, email`,
+    [
+        usernameLimpo,
+        emailLimpo,
+        senhaFinal,
+        artistaId
+    ]
+);
+
+if (atualizado.rows.length === 0) {
+    return res.status(404).json({
+        erro: "Conta não encontrada ou desativada."
+    });
+}
+
+        return res.status(200).json({
+            mensagem: "Dados da conta atualizados com sucesso!",
+            artista: atualizado.rows[0]
+        });
+
+    } catch (erro) {
+        console.error("Erro ao atualizar conta:", erro);
+
+        return res.status(500).json({
+            erro: "Erro ao atualizar dados da conta."
+        });
+    }
+});
 module.exports = router;
 
